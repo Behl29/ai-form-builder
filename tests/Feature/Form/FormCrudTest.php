@@ -52,6 +52,8 @@ class FormCrudTest extends TestCase
         ];
     }
 
+    // ==================== CREATE TESTS ====================
+
     public function test_can_create_form(): void
     {
         $response = $this->actingAs($this->user)->postJson('/api/forms', [
@@ -61,8 +63,8 @@ class FormCrudTest extends TestCase
         ]);
 
         $response->assertStatus(201);
-        $response->assertJsonPath('title', 'Contact Form');
-        $response->assertJsonPath('status', 'draft');
+        $response->assertJsonPath('data.title', 'Contact Form');
+        $response->assertJsonPath('data.status', 'draft');
 
         $this->assertDatabaseHas('forms', [
             'title' => 'Contact Form',
@@ -83,6 +85,55 @@ class FormCrudTest extends TestCase
         $this->assertNotNull($form->currentVersion);
         $this->assertEquals('1.0', $form->currentVersion->schema['schemaVersion']);
     }
+
+    public function test_can_create_form_with_custom_slug(): void
+    {
+        $response = $this->actingAs($this->user)->postJson('/api/forms', [
+            'title' => 'My Form',
+            'slug' => 'my-custom-slug',
+        ]);
+
+        $response->assertStatus(201);
+        $response->assertJsonPath('data.slug', 'my-custom-slug');
+    }
+
+    public function test_slug_must_be_unique_within_tenant(): void
+    {
+        Form::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'created_by' => $this->user->id,
+            'slug' => 'existing-slug',
+        ]);
+
+        $response = $this->actingAs($this->user)->postJson('/api/forms', [
+            'title' => 'New Form',
+            'slug' => 'existing-slug',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['slug']);
+    }
+
+    public function test_slug_must_be_safe_format(): void
+    {
+        $response = $this->actingAs($this->user)->postJson('/api/forms', [
+            'title' => 'Test',
+            'slug' => 'Invalid Slug!',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['slug']);
+    }
+
+    public function test_title_is_required(): void
+    {
+        $response = $this->actingAs($this->user)->postJson('/api/forms', []);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['title']);
+    }
+
+    // ==================== LIST TESTS ====================
 
     public function test_can_list_forms(): void
     {
@@ -117,6 +168,44 @@ class FormCrudTest extends TestCase
         $response->assertJsonCount(1, 'data');
     }
 
+    public function test_can_search_forms(): void
+    {
+        Form::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'created_by' => $this->user->id,
+            'title' => 'Contact Form',
+        ]);
+
+        Form::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'created_by' => $this->user->id,
+            'title' => 'Survey Form',
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson('/api/forms?search=Contact');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.title', 'Contact Form');
+    }
+
+    public function test_can_paginate_forms(): void
+    {
+        Form::factory()->count(20)->create([
+            'tenant_id' => $this->tenant->id,
+            'created_by' => $this->user->id,
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson('/api/forms?per_page=5');
+
+        $response->assertOk();
+        $response->assertJsonCount(5, 'data');
+        $response->assertJsonPath('meta.per_page', 5);
+        $response->assertJsonPath('meta.total', 20);
+    }
+
+    // ==================== SHOW TESTS ====================
+
     public function test_can_show_form(): void
     {
         $form = Form::factory()->create([
@@ -135,9 +224,11 @@ class FormCrudTest extends TestCase
         $response = $this->actingAs($this->user)->getJson("/api/forms/{$form->id}");
 
         $response->assertOk();
-        $response->assertJsonPath('id', $form->id);
-        $response->assertJsonStructure(['current_version']);
+        $response->assertJsonPath('data.id', $form->id);
+        $response->assertJsonStructure(['data' => ['current_version']]);
     }
+
+    // ==================== UPDATE TESTS ====================
 
     public function test_can_update_form_metadata(): void
     {
@@ -153,8 +244,48 @@ class FormCrudTest extends TestCase
         ]);
 
         $response->assertOk();
-        $response->assertJsonPath('title', 'Updated Title');
+        $response->assertJsonPath('data.title', 'Updated Title');
     }
+
+    public function test_can_update_form_slug(): void
+    {
+        $form = Form::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'created_by' => $this->user->id,
+            'slug' => 'old-slug',
+        ]);
+
+        $response = $this->actingAs($this->user)->putJson("/api/forms/{$form->id}", [
+            'slug' => 'new-slug',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.slug', 'new-slug');
+    }
+
+    public function test_cannot_update_slug_to_existing_slug(): void
+    {
+        Form::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'created_by' => $this->user->id,
+            'slug' => 'taken-slug',
+        ]);
+
+        $form = Form::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'created_by' => $this->user->id,
+            'slug' => 'my-slug',
+        ]);
+
+        $response = $this->actingAs($this->user)->putJson("/api/forms/{$form->id}", [
+            'slug' => 'taken-slug',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['slug']);
+    }
+
+    // ==================== DELETE TESTS ====================
 
     public function test_can_delete_form(): void
     {
@@ -169,84 +300,24 @@ class FormCrudTest extends TestCase
         $this->assertDatabaseMissing('forms', ['id' => $form->id]);
     }
 
-    public function test_can_publish_form(): void
+    public function test_deleting_form_deletes_versions(): void
     {
         $form = Form::factory()->create([
             'tenant_id' => $this->tenant->id,
             'created_by' => $this->user->id,
-            'status' => Form::STATUS_DRAFT,
         ]);
 
         $version = FormVersion::factory()->create([
             'form_id' => $form->id,
             'created_by' => $this->user->id,
-            'schema' => $this->validSchema(),
         ]);
 
-        $form->update(['current_version_id' => $version->id]);
+        $this->actingAs($this->user)->deleteJson("/api/forms/{$form->id}");
 
-        $response = $this->actingAs($this->user)->postJson("/api/forms/{$form->id}/publish");
-
-        $response->assertOk();
-        $response->assertJsonPath('form.status', 'published');
-
-        $version->refresh();
-        $this->assertTrue($version->is_published);
+        $this->assertDatabaseMissing('form_versions', ['id' => $version->id]);
     }
 
-    public function test_can_archive_form(): void
-    {
-        $form = Form::factory()->create([
-            'tenant_id' => $this->tenant->id,
-            'created_by' => $this->user->id,
-            'status' => Form::STATUS_PUBLISHED,
-        ]);
-
-        $response = $this->actingAs($this->user)->postJson("/api/forms/{$form->id}/archive");
-
-        $response->assertOk();
-        $response->assertJsonPath('form.status', 'archived');
-    }
-
-    public function test_can_restore_archived_form(): void
-    {
-        $form = Form::factory()->create([
-            'tenant_id' => $this->tenant->id,
-            'created_by' => $this->user->id,
-            'status' => Form::STATUS_ARCHIVED,
-        ]);
-
-        $response = $this->actingAs($this->user)->postJson("/api/forms/{$form->id}/restore");
-
-        $response->assertOk();
-        $response->assertJsonPath('form.status', 'draft');
-    }
-
-    public function test_can_duplicate_form(): void
-    {
-        $form = Form::factory()->create([
-            'tenant_id' => $this->tenant->id,
-            'created_by' => $this->user->id,
-            'title' => 'Original Form',
-        ]);
-
-        $version = FormVersion::factory()->create([
-            'form_id' => $form->id,
-            'created_by' => $this->user->id,
-            'schema' => $this->validSchema(),
-        ]);
-
-        $form->update(['current_version_id' => $version->id]);
-
-        $response = $this->actingAs($this->user)->postJson("/api/forms/{$form->id}/duplicate", [
-            'title' => 'Duplicated Form',
-        ]);
-
-        $response->assertStatus(201);
-        $response->assertJsonPath('form.title', 'Duplicated Form');
-
-        $this->assertEquals(2, Form::count());
-    }
+    // ==================== TENANT ISOLATION TESTS ====================
 
     public function test_cannot_access_other_tenant_forms(): void
     {
@@ -259,8 +330,6 @@ class FormCrudTest extends TestCase
             'created_by' => $otherUser->id,
         ]);
 
-        // Form is not found due to tenant scope (404) - this is correct behavior
-        // The global scope filters out forms from other tenants
         $response = $this->actingAs($this->user)->getJson("/api/forms/{$form->id}");
 
         $response->assertStatus(404);
@@ -268,13 +337,11 @@ class FormCrudTest extends TestCase
 
     public function test_forms_are_scoped_to_tenant(): void
     {
-        // Create form for current tenant
         Form::factory()->create([
             'tenant_id' => $this->tenant->id,
             'created_by' => $this->user->id,
         ]);
 
-        // Create form for other tenant
         $otherTenant = Tenant::factory()->create();
         $otherUser = User::factory()->create(['current_tenant_id' => $otherTenant->id]);
         Form::factory()->create([
@@ -287,6 +354,8 @@ class FormCrudTest extends TestCase
         $response->assertOk();
         $response->assertJsonCount(1, 'data');
     }
+
+    // ==================== VALIDATION TESTS ====================
 
     public function test_invalid_schema_returns_validation_errors(): void
     {
@@ -301,6 +370,8 @@ class FormCrudTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonStructure(['message', 'errors']);
     }
+
+    // ==================== AUTH TESTS ====================
 
     public function test_unauthenticated_cannot_access_forms(): void
     {

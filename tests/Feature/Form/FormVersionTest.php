@@ -209,7 +209,7 @@ class FormVersionTest extends TestCase
         $response = $this->actingAs($this->user)->getJson("/api/forms/{$form->id}/versions");
 
         $response->assertOk();
-        $versions = $response->json();
+        $versions = $response->json('data');
 
         $this->assertCount(5, $versions);
 
@@ -264,7 +264,7 @@ class FormVersionTest extends TestCase
             ->getJson("/api/forms/{$form->id}/versions/{$version->id}");
 
         $response->assertOk();
-        $response->assertJsonPath('version_number', 1);
-        $response->assertJsonPath('schema.schemaVersion', '1.0');
+        $response->assertJsonPath('data.version_number', 1);
+        $response->assertJsonPath('data.schema.schemaVersion', '1.0');
     }
 }
