@@ -13,27 +13,22 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy composer files first
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
-
-# Copy package files and build frontend
-COPY package.json package-lock.json ./
-RUN npm install && npm run build
-
-# Copy rest of application
+# Copy everything first
 COPY . .
 
-# Setup Laravel
-RUN composer dump-autoload --optimize \
-    && mkdir -p storage/framework/{sessions,views,cache} \
+# Install dependencies and build
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction \
+    && npm install \
+    && npm run build \
+    && composer dump-autoload --optimize
+
+# Setup Laravel directories and permissions
+RUN mkdir -p storage/framework/{sessions,views,cache} \
     && mkdir -p storage/logs \
     && mkdir -p database \
     && touch database/database.sqlite \
     && chmod -R 775 storage bootstrap/cache database
 
-# Expose port
 EXPOSE 8080
 
-# Start command
 CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8080
