@@ -57,35 +57,51 @@ export function CreateFormModal({ open, onClose, onSubmit, onFormCreated, loadin
 
             // Poll for status
             let attempts = 0;
-            const maxAttempts = 30;
+            const maxAttempts = 20;
 
             const pollStatus = async () => {
                 if (attempts >= maxAttempts) {
                     setAiStatus('Taking longer than expected...');
+                    setAiLoading(false);
                     return;
                 }
 
-                const statusRes = await api.get(`/ai/jobs/${jobUuid}`);
-                const status = statusRes.data.status;
+                try {
+                    const statusRes = await api.get(`/ai/jobs/${jobUuid}`);
+                    const status = statusRes.data.status;
 
-                if (status === 'completed') {
-                    setAiStatus('Creating form...');
-                    // Create form with generated schema
-                    await api.post('/ai/create-form', { job_uuid: jobUuid });
-                    setAiStatus('Form created!');
-                    handleClose();
-                    onFormCreated?.();
-                } else if (status === 'failed') {
-                    setErrors({ prompt: statusRes.data.error || 'AI generation failed' });
-                    setAiLoading(false);
-                    setAiStatus('');
-                } else {
-                    attempts++;
-                    setTimeout(pollStatus, 2000);
+                    if (status === 'succeeded') {
+                        setAiStatus('Creating form...');
+                        // Create form with generated schema
+                        await api.post('/ai/create-form', { job_uuid: jobUuid });
+                        setAiStatus('Form created!');
+                        handleClose();
+                        onFormCreated?.();
+                    } else if (status === 'failed') {
+                        setErrors({ prompt: statusRes.data.error_message || 'AI generation failed' });
+                        setAiLoading(false);
+                        setAiStatus('');
+                    } else {
+                        // Still running or queued
+                        attempts++;
+                        setTimeout(pollStatus, 5000); // 5 seconds between polls
+                    }
+                } catch (err: any) {
+                    if (err.response?.status === 429) {
+                        // Rate limited, wait longer
+                        const retryAfter = err.response?.data?.retry_after || 60;
+                        setAiStatus(`Rate limited, waiting ${retryAfter}s...`);
+                        setTimeout(pollStatus, retryAfter * 1000);
+                    } else {
+                        setErrors({ prompt: 'Failed to check status' });
+                        setAiLoading(false);
+                        setAiStatus('');
+                    }
                 }
             };
 
-            pollStatus();
+            // Wait a bit before first poll
+            setTimeout(pollStatus, 3000);
         } catch (err: any) {
             setErrors({ prompt: err.response?.data?.message || 'Failed to generate form' });
             setAiLoading(false);
