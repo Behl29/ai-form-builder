@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FormSchema } from '../../types/form-schema';
-import api from '../../lib/api';
+import type { FormSchema } from '../types/form-schema';
+import api from '../lib/api';
 
 interface UseAutosaveOptions {
     formId: number;
@@ -32,7 +32,7 @@ export function useAutosave({
     });
 
     const lastSavedSchemaRef = useRef<string | null>(null);
-    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isSavingRef = useRef(false);
 
     // Manual save function

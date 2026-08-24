@@ -13,7 +13,6 @@ import {
     Mail,
     Phone,
     Star,
-    TextCursorInput,
     Type,
 } from 'lucide-react';
 import type { ReactNode } from 'react';

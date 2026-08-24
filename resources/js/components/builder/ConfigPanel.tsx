@@ -1,13 +1,13 @@
 import { clsx } from 'clsx';
 import { Plus, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import type { FieldOption, FieldType, FormField, FormSection } from '../../types/form-schema';
-import { FIELDS_WITH_OPTIONS, isPresentationalField } from '../../types/form-schema';
+import { useState } from 'react';
+import type { FieldOption, FormField, FormSection } from '../../types/form-schema';
+import { isPresentationalField } from '../../types/form-schema';
 import { Button } from '../ui';
 import { useBuilder } from './BuilderContext';
 
 export function ConfigPanel() {
-    const { state, getSelectedField, getSelectedSection, selectField, selectSection } = useBuilder();
+    const { getSelectedField, getSelectedSection, selectField, selectSection } = useBuilder();
     const selectedField = getSelectedField();
     const selectedSection = getSelectedSection();
 

@@ -92,7 +92,7 @@ interface SortableSectionProps {
     isLast: boolean;
 }
 
-function SortableSection({ section, index, isLast }: SortableSectionProps) {
+function SortableSection({ section, isLast }: SortableSectionProps) {
     const { state, selectSection, updateSection, deleteSection } = useBuilder();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);

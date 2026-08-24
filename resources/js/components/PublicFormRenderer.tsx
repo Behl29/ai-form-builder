@@ -1,9 +1,9 @@
 import { clsx } from 'clsx';
 import { AlertCircle, Check, ChevronLeft, ChevronRight, Loader2, Star } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import type { FieldOption, FormField, FormSchema, FormSection } from '../../types/form-schema';
-import { FIELDS_WITH_OPTIONS, isPresentationalField } from '../../types/form-schema';
-import api from '../../lib/api';
+import type { FieldOption, FormField, FormSchema, FormSection } from '../types/form-schema';
+import { isPresentationalField } from '../types/form-schema';
+import api from '../lib/api';
 
 interface PublicFormRendererProps {
     schema: FormSchema;
@@ -27,7 +27,6 @@ export function PublicFormRenderer({ schema, slug, successMessage }: PublicFormR
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
-    const [touched, setTouched] = useState<Set<string>>(new Set());
 
     const sections = schema.sections || [];
     const isMultiStep = sections.length > 1;
@@ -36,7 +35,6 @@ export function PublicFormRenderer({ schema, slug, successMessage }: PublicFormR
 
     const handleFieldChange = useCallback((key: string, value: string | number | boolean | string[]) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
-        setTouched((prev) => new Set(prev).add(key));
         setErrors((prev) => {
             const newErrors = { ...prev };
             delete newErrors[key];
@@ -281,7 +279,7 @@ export function PublicFormRenderer({ schema, slug, successMessage }: PublicFormR
 
 interface FieldInputProps {
     field: FormField;
-    value: string | number | boolean | string[] | undefined;
+    value: string | number | boolean | string[] | File[] | undefined;
     files?: File[];
     error?: string[];
     onChange: (key: string, value: string | number | boolean | string[]) => void;
@@ -289,7 +287,10 @@ interface FieldInputProps {
     formData: FormData;
 }
 
-function FieldInput({ field, value, files, error, onChange, onFileChange, formData }: FieldInputProps) {
+function FieldInput({ field, value: rawValue, files, error, onChange, onFileChange, formData }: FieldInputProps) {
+    // Exclude File[] from value for rendering
+    const value = Array.isArray(rawValue) && rawValue.length > 0 && rawValue[0] instanceof File ? undefined : rawValue as string | number | boolean | string[] | undefined;
+    
     if (!isFieldVisible(field, formData)) {
         return null;
     }

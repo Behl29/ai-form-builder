@@ -102,7 +102,7 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
     }, []);
 
     // Handle drag over
-    const handleDragOver = useCallback((event: DragOverEvent) => {
+    const handleDragOver = useCallback((_event: DragOverEvent) => {
         // Visual feedback handled by drop zones
     }, []);
 
