@@ -31,14 +31,21 @@ class AIController extends Controller
             ], 503);
         }
 
-        $job = $this->aiService->queueGeneration(
-            $request->user(),
-            $request->user()->current_tenant_id,
-            $request->input('prompt'),
-            array_filter([
-                'language' => $request->input('language'),
-            ])
-        );
+        try {
+            $job = $this->aiService->queueGeneration(
+                $request->user(),
+                $request->user()->current_tenant_id,
+                $request->input('prompt'),
+                array_filter([
+                    'language' => $request->input('language'),
+                ])
+            );
+        } catch (\Exception $e) {
+            \Log::error('AI generation failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'AI generation failed: ' . $e->getMessage(),
+            ], 500);
+        }
 
         // Refresh job to get updated status (sync queue completes immediately)
         $job->refresh();
@@ -54,6 +61,7 @@ class AIController extends Controller
             $response['result_schema'] = $job->result_schema;
         } elseif ($job->isFailed()) {
             $response['error_message'] = $job->error_message;
+            return response()->json($response, 422);
         }
 
         return response()->json($response, $job->isSucceeded() ? 200 : 202);
