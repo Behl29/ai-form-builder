@@ -21,11 +21,11 @@ class OpenAIProvider implements FormAIProvider
 
     public function __construct()
     {
-        $this->apiKey = config('services.openai.api_key', '');
-        $this->model = config('services.openai.model', 'gpt-4o-mini');
-        $this->baseUrl = config('services.openai.base_url', 'https://api.openai.com/v1');
-        $this->timeout = config('services.openai.timeout', 60);
-        $this->maxTokens = config('services.openai.max_tokens', 4096);
+        $this->apiKey = config('services.openai.api_key') ?? '';
+        $this->model = config('services.openai.model') ?? 'gpt-4o-mini';
+        $this->baseUrl = config('services.openai.base_url') ?? 'https://api.openai.com/v1';
+        $this->timeout = (int) config('services.openai.timeout', 60);
+        $this->maxTokens = (int) config('services.openai.max_tokens', 4096);
     }
 
     public function generateForm(string $prompt, array $options = []): AIResponse

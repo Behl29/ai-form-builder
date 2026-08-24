@@ -26,7 +26,7 @@ class ProcessAIFormGeneration implements ShouldQueue
     public function __construct(
         public AIJob $aiJob
     ) {
-        $this->onQueue('ai');
+        // Use default queue in sync mode
     }
 
     public function handle(
