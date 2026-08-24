@@ -1,0 +1,1 @@
+NIXPACKS_PHP_EXTENSIONS=pdo_mysql,redis,gd,pcntl,zip,bcmath,mbstring,exif
