@@ -30,3 +30,9 @@ services:
         value: stderr
       - key: MAIL_MAILER
         value: log
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
