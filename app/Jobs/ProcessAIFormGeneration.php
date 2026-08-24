@@ -139,7 +139,8 @@ class ProcessAIFormGeneration implements ShouldQueue
 
         if (in_array($response->errorType, $retryableErrors) && $this->aiJob->retry_count < $this->tries) {
             $this->aiJob->incrementRetry();
-            $this->release($this->backoff * ($this->aiJob->retry_count + 1));
+            $retryIndex = min($this->aiJob->retry_count, count($this->backoff) - 1);
+            $this->release($this->backoff[$retryIndex]);
             return;
         }
 
