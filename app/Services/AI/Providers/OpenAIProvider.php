@@ -21,7 +21,11 @@ class OpenAIProvider implements FormAIProvider
 
     public function __construct()
     {
-        $this->apiKey = config('services.openai.api_key') ?? '';
+        // Try multiple sources for API key
+        $this->apiKey = config('services.openai.api_key') 
+            ?? getenv('OPENAI_API_KEY') 
+            ?? $_ENV['OPENAI_API_KEY'] 
+            ?? '';
         $this->model = config('services.openai.model') ?? 'gpt-4o-mini';
         $this->baseUrl = config('services.openai.base_url') ?? 'https://api.openai.com/v1';
         $this->timeout = (int) config('services.openai.timeout', 60);
