@@ -23,11 +23,13 @@ export default defineConfig({
         strictPort: true,
         hmr: {
             host: 'localhost',
-            port: 5173,
+            port: 5174,
+            protocol: 'ws',
         },
         watch: {
             usePolling: true,
             ignored: ['**/storage/framework/views/**'],
         },
+        cors: true,
     },
 });
