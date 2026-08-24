@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\AI\AIFormService;
 use App\Services\AI\AISchemaRepair;
 use App\Services\AI\FormAIProvider;
+use App\Services\AI\Providers\GeminiProvider;
 use App\Services\AI\Providers\MockAIProvider;
 use App\Services\AI\Providers\OpenAIProvider;
 use App\Services\FormSchema\FormSchemaValidator;
@@ -21,6 +22,7 @@ class AIServiceProvider extends ServiceProvider
 
             return match ($provider) {
                 'mock' => new MockAIProvider(),
+                'gemini' => new GeminiProvider(),
                 'openai' => new OpenAIProvider(),
                 default => new OpenAIProvider(),
             };

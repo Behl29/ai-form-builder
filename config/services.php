@@ -53,4 +53,10 @@ return [
         'max_tokens' => env('OPENAI_MAX_TOKENS', 4096),
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-1.5-flash'),
+        'timeout' => env('GEMINI_TIMEOUT', 60),
+    ],
+
 ];
