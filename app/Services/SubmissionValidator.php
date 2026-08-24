@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Services\FormSchema\FormSchemaContract;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Arr;
 
 class SubmissionValidator
 {
@@ -12,6 +11,7 @@ class SubmissionValidator
     private array $schema;
     private array $data;
     private array $files;
+    private ?ConditionEvaluator $evaluator = null;
 
     public function validate(array $schema, array $data, array $files = []): array
     {
@@ -19,8 +19,15 @@ class SubmissionValidator
         $this->schema = $schema;
         $this->data = $data;
         $this->files = $files;
+        $this->evaluator = new ConditionEvaluator($schema, $data);
 
         foreach ($schema['sections'] ?? [] as $section) {
+            // Skip hidden sections
+            $sectionId = $section['id'] ?? null;
+            if ($sectionId && !$this->evaluator->isSectionVisible($sectionId)) {
+                continue;
+            }
+
             foreach ($section['fields'] ?? [] as $field) {
                 $this->validateField($field);
             }
@@ -53,8 +60,8 @@ class SubmissionValidator
             return;
         }
 
-        // Check if field should be visible based on conditions
-        if (!$this->isFieldVisible($field)) {
+        // Check if field should be visible (using shared evaluator)
+        if (!$this->evaluator->isFieldVisible($key)) {
             return;
         }
 
@@ -62,13 +69,11 @@ class SubmissionValidator
         $label = $field['label'] ?? $key;
         $customError = $field['customError'] ?? null;
 
-        // Required validation
-        $isRequired = $field['required'] ?? false;
-        if ($this->shouldBeRequired($field) || $isRequired) {
-            if ($this->isEmpty($value, $type)) {
-                $this->addError($key, $customError ?? "{$label} is required.");
-                return;
-            }
+        // Required validation - use evaluator for conditional require
+        $isRequired = $this->evaluator->isFieldRequired($key);
+        if ($isRequired && $this->isEmpty($value, $type)) {
+            $this->addError($key, $customError ?? "{$label} is required.");
+            return;
         }
 
         // Skip further validation if empty and not required
@@ -265,7 +270,6 @@ class SubmissionValidator
                 continue;
             }
 
-            // Extension validation
             if (!empty($accept)) {
                 $extension = '.' . strtolower($file->getClientOriginalExtension());
                 $mimeType = $file->getMimeType();
@@ -296,7 +300,6 @@ class SubmissionValidator
                 }
             }
 
-            // Size validation
             if ($maxSize !== null && $file->getSize() > $maxSize) {
                 $maxSizeMB = round($maxSize / (1024 * 1024), 2);
                 $this->addError($key, $customError ?? "{$label} must not exceed {$maxSizeMB} MB.");
@@ -339,79 +342,6 @@ class SubmissionValidator
         }
 
         return false;
-    }
-
-    private function isFieldVisible(array $field): bool
-    {
-        $conditions = $field['conditions'] ?? [];
-
-        foreach ($conditions as $condition) {
-            $action = $condition['action'] ?? null;
-            if (!in_array($action, ['show', 'hide'])) {
-                continue;
-            }
-
-            $targetFieldKey = $condition['field'] ?? null;
-            if (!$targetFieldKey) {
-                continue;
-            }
-
-            $targetValue = $this->data[$targetFieldKey] ?? null;
-            $conditionMet = $this->evaluateCondition($condition, $targetValue);
-
-            if ($action === 'show' && !$conditionMet) {
-                return false;
-            }
-
-            if ($action === 'hide' && $conditionMet) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private function shouldBeRequired(array $field): bool
-    {
-        $conditions = $field['conditions'] ?? [];
-
-        foreach ($conditions as $condition) {
-            if (($condition['action'] ?? null) !== 'require') {
-                continue;
-            }
-
-            $targetFieldKey = $condition['field'] ?? null;
-            if (!$targetFieldKey) {
-                continue;
-            }
-
-            $targetValue = $this->data[$targetFieldKey] ?? null;
-            if ($this->evaluateCondition($condition, $targetValue)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function evaluateCondition(array $condition, mixed $value): bool
-    {
-        $operator = $condition['operator'] ?? 'equals';
-        $conditionValue = $condition['value'] ?? null;
-
-        return match ($operator) {
-            'equals' => $value == $conditionValue,
-            'not_equals' => $value != $conditionValue,
-            'contains' => is_string($value) && str_contains($value, (string) $conditionValue),
-            'not_contains' => is_string($value) && !str_contains($value, (string) $conditionValue),
-            'greater_than' => is_numeric($value) && $value > $conditionValue,
-            'less_than' => is_numeric($value) && $value < $conditionValue,
-            'is_empty' => $value === null || $value === '' || (is_array($value) && empty($value)),
-            'is_not_empty' => $value !== null && $value !== '' && !(is_array($value) && empty($value)),
-            'in' => is_array($conditionValue) && in_array($value, $conditionValue),
-            'not_in' => is_array($conditionValue) && !in_array($value, $conditionValue),
-            default => false,
-        };
     }
 
     private function addError(string $key, string $message): void
