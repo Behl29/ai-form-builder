@@ -26,17 +26,20 @@ Route::middleware(['auth:sanctum', SetTenantContext::class])->group(function () 
 
     // Tenant-scoped routes (require active tenant context)
     Route::middleware(EnsureTenantContext::class)->group(function () {
-        // Forms
+        // Forms CRUD
         Route::apiResource('forms', FormController::class);
-        Route::put('/forms/{form}/schema', [FormController::class, 'updateSchema']);
-        Route::post('/forms/{form}/publish', [FormController::class, 'publish']);
-        Route::post('/forms/{form}/archive', [FormController::class, 'archive']);
-        Route::post('/forms/{form}/restore', [FormController::class, 'restore']);
-        Route::post('/forms/{form}/duplicate', [FormController::class, 'duplicate']);
+
+        // Form actions
+        Route::put('/forms/{form}/schema', [FormController::class, 'updateSchema'])->name('forms.schema.update');
+        Route::post('/forms/{form}/publish', [FormController::class, 'publish'])->name('forms.publish');
+        Route::post('/forms/{form}/unpublish', [FormController::class, 'unpublish'])->name('forms.unpublish');
+        Route::post('/forms/{form}/archive', [FormController::class, 'archive'])->name('forms.archive');
+        Route::post('/forms/{form}/restore', [FormController::class, 'restore'])->name('forms.restore');
+        Route::post('/forms/{form}/duplicate', [FormController::class, 'duplicate'])->name('forms.duplicate');
 
         // Form versions
-        Route::get('/forms/{form}/versions', [FormController::class, 'versions']);
-        Route::get('/forms/{form}/versions/{version}', [FormController::class, 'showVersion']);
-        Route::post('/forms/{form}/versions/{version}/restore', [FormController::class, 'restoreVersion']);
+        Route::get('/forms/{form}/versions', [FormController::class, 'versions'])->name('forms.versions.index');
+        Route::get('/forms/{form}/versions/{version}', [FormController::class, 'showVersion'])->name('forms.versions.show');
+        Route::post('/forms/{form}/versions/{version}/restore', [FormController::class, 'restoreVersion'])->name('forms.versions.restore');
     });
 });
