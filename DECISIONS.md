@@ -662,4 +662,285 @@ DELETE /api/import/{uuid}           # Cancel import
 - Unique key generation
 - Default options for select fields
 
-### Total: 235 tests, 574 assertions
+### Total: 265 tests, 622 assertions
+
+---
+
+## Phase 9: Security Hardening & Performance
+
+### Security Measures Implemented
+
+1. **Authorization Hardening**
+   - FormPolicy enforces tenant ownership
+   - Cross-tenant access blocked at controller level
+   - File downloads require authenticated tenant member
+
+2. **Rate Limiting**
+   - Public submissions: 10/minute per IP
+   - Authentication: 5/minute per IP
+   - AI generation: 5/minute per user
+   - AI modification: 10/minute per user
+   - Document import: 5/5 minutes per user
+   - CSV export: 10/minute per user
+
+3. **Input Validation**
+   - Schema size limit: 1MB
+   - Max fields: 200
+   - Max sections: 50
+   - Max options: 500
+   - Regex pattern safety validation
+   - AI prompt length limit: 5000 chars
+
+4. **File Security**
+   - Blocked extensions: php, exe, bat, sh, etc.
+   - Double extension detection
+   - MIME type validation
+   - Path traversal prevention
+   - Null byte sanitization
+
+5. **CSV Injection Prevention**
+   - Formula characters escaped with single quote
+   - Affects: =, +, -, @, |, %
+
+### Performance Optimizations
+
+1. **Database Indexes**
+   - forms: (tenant_id, updated_at), (slug, status)
+   - form_versions: (form_id, version_number), (form_id, is_published)
+   - form_submissions: (form_id, ip_address, submitted_at)
+   - ai_jobs: (tenant_id, user_id, created_at)
+   - import_jobs: (job_uuid, tenant_id)
+
+2. **Query Optimization**
+   - Eager loading for relationships
+   - Pagination for list endpoints
+   - Selective column loading
+
+---
+
+## Architecture Diagrams
+
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    tenants ||--o{ users : "has many"
+    tenants ||--o{ forms : "has many"
+    tenants ||--o{ ai_jobs : "has many"
+    tenants ||--o{ import_jobs : "has many"
+    
+    users ||--o{ forms : "creates"
+    users ||--o{ form_versions : "creates"
+    users ||--o{ ai_jobs : "creates"
+    users ||--o{ import_jobs : "creates"
+    
+    forms ||--o{ form_versions : "has many"
+    forms ||--o{ form_submissions : "has many"
+    forms ||--|| form_versions : "current version"
+    
+    form_versions ||--o{ form_submissions : "has many"
+    
+    form_submissions ||--o{ submission_files : "has many"
+    
+    tenants {
+        uuid id PK
+        string name
+        string slug UK
+        timestamp created_at
+    }
+    
+    users {
+        uuid id PK
+        string name
+        string email UK
+        uuid current_tenant_id FK
+    }
+    
+    forms {
+        uuid id PK
+        uuid tenant_id FK
+        uuid created_by FK
+        uuid current_version_id FK
+        string title
+        string slug
+        enum status
+    }
+    
+    form_versions {
+        uuid id PK
+        uuid form_id FK
+        uuid created_by FK
+        int version_number
+        json schema
+        bool is_published
+    }
+    
+    form_submissions {
+        uuid id PK
+        uuid form_id FK
+        uuid form_version_id FK
+        json data
+        enum status
+        string ip_address
+    }
+```
+
+### System Architecture
+
+```mermaid
+flowchart TB
+    subgraph Client
+        Browser[React SPA]
+    end
+    
+    subgraph LoadBalancer
+        Nginx[Nginx]
+    end
+    
+    subgraph Application
+        Laravel[Laravel API]
+        Horizon[Horizon Workers]
+    end
+    
+    subgraph Storage
+        MySQL[(MySQL)]
+        Redis[(Redis)]
+        S3[S3/Local Storage]
+    end
+    
+    subgraph External
+        OpenAI[OpenAI API]
+        Anthropic[Anthropic API]
+        Bedrock[AWS Bedrock]
+    end
+    
+    Browser --> Nginx
+    Nginx --> Laravel
+    Laravel --> MySQL
+    Laravel --> Redis
+    Laravel --> S3
+    Laravel --> Horizon
+    Horizon --> Redis
+    Horizon --> MySQL
+    Horizon --> OpenAI
+    Horizon --> Anthropic
+    Horizon --> Bedrock
+```
+
+### AI Generation Sequence
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant API as Laravel API
+    participant Q as Queue (Redis)
+    participant W as Horizon Worker
+    participant AI as AI Provider
+    participant DB as Database
+    
+    U->>API: POST /api/ai/generate
+    API->>DB: Create AIJob (queued)
+    API->>Q: Dispatch ProcessAIFormGeneration
+    API-->>U: 202 Accepted {job_uuid}
+    
+    Q->>W: Process job
+    W->>DB: Update status (running)
+    W->>AI: Send prompt
+    AI-->>W: JSON schema response
+    
+    alt Valid Schema
+        W->>DB: Store result_schema
+        W->>DB: Update status (succeeded)
+    else Invalid Schema
+        W->>W: Attempt repair
+        alt Repair Success
+            W->>DB: Store repaired schema
+            W->>DB: Update status (succeeded)
+        else Repair Failed
+            W->>DB: Store error
+            W->>DB: Update status (failed)
+        end
+    end
+    
+    U->>API: GET /api/ai/jobs/{uuid}
+    API->>DB: Fetch job
+    API-->>U: Job status + schema
+```
+
+### Import Flow
+
+```mermaid
+flowchart TD
+    A[Upload File] --> B{File Type?}
+    B -->|DOCX| C[DocxParser]
+    B -->|XLSX| D[XlsxParser]
+    
+    C --> E[Extract Elements]
+    D --> E
+    
+    E --> F[Infer Field Types]
+    F --> G[Generate Preview]
+    G --> H{User Review}
+    
+    H -->|Corrections| I[Apply Corrections]
+    I --> G
+    
+    H -->|Confirm| J[ImportSchemaBuilder]
+    J --> K[Validate Schema]
+    
+    K -->|Valid| L[Create Form + Version]
+    K -->|Invalid| M[Return Errors]
+    
+    L --> N[Success Response]
+```
+
+---
+
+## Two-Week Improvement Plan
+
+If given two additional weeks, the following improvements would be prioritized:
+
+### Week 1: User Experience
+
+1. **Visual Condition Builder** (3 days)
+   - Drag-drop interface for creating conditions
+   - Visual flow diagram showing field dependencies
+   - Condition testing/simulation mode
+
+2. **Form Templates** (2 days)
+   - Pre-built templates (Contact, Survey, Registration)
+   - Save custom forms as templates
+   - Template marketplace/sharing
+
+3. **Real-time Collaboration** (2 days)
+   - WebSocket-based live updates
+   - Presence indicators
+   - Conflict resolution
+
+### Week 2: Features & Polish
+
+4. **Analytics Dashboard** (2 days)
+   - Submission trends over time
+   - Field completion rates
+   - Drop-off analysis
+   - Export reports
+
+5. **Webhook Notifications** (1 day)
+   - Configurable webhooks per form
+   - Retry logic with exponential backoff
+   - Webhook logs and debugging
+
+6. **Internationalization** (2 days)
+   - Multi-language form labels
+   - RTL support
+   - Date/number formatting
+
+7. **PDF Export** (1 day)
+   - Export submissions as PDF
+   - Customizable templates
+   - Batch export
+
+8. **Testing & Documentation** (1 day)
+   - E2E tests with Playwright
+   - API documentation with OpenAPI
+   - Video tutorials

@@ -75,29 +75,82 @@
 
 ## 🏗️ Architecture
 
+### System Overview
+
+```mermaid
+flowchart TB
+    subgraph Client
+        Browser[React SPA]
+    end
+    
+    subgraph LoadBalancer
+        Nginx[Nginx]
+    end
+    
+    subgraph Application
+        Laravel[Laravel API]
+        Horizon[Horizon Workers]
+    end
+    
+    subgraph Storage
+        MySQL[(MySQL)]
+        Redis[(Redis)]
+        S3[S3/Local Storage]
+    end
+    
+    subgraph External
+        AI[AI Providers]
+    end
+    
+    Browser --> Nginx
+    Nginx --> Laravel
+    Laravel --> MySQL
+    Laravel --> Redis
+    Laravel --> S3
+    Laravel --> Horizon
+    Horizon --> Redis
+    Horizon --> MySQL
+    Horizon --> AI
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Client (React SPA)                    │
-├─────────────────────────────────────────────────────────────┤
-│                        Nginx (Reverse Proxy)                 │
-├─────────────────────────────────────────────────────────────┤
-│                        Laravel API                           │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   Forms     │  │     AI      │  │   Import    │         │
-│  │  Service    │  │   Service   │  │   Service   │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   MySQL     │  │    Redis    │  │   Storage   │         │
-│  │  Database   │  │ Cache/Queue │  │  (S3/Local) │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-├─────────────────────────────────────────────────────────────┤
-│                    Horizon (Queue Workers)                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   Default   │  │     AI      │  │   Imports   │         │
-│  │   Queue     │  │    Queue    │  │    Queue    │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-└─────────────────────────────────────────────────────────────┘
+
+### Entity Relationship
+
+```mermaid
+erDiagram
+    tenants ||--o{ users : "has many"
+    tenants ||--o{ forms : "has many"
+    forms ||--o{ form_versions : "has many"
+    forms ||--o{ form_submissions : "has many"
+    form_submissions ||--o{ submission_files : "has many"
+    
+    tenants {
+        uuid id PK
+        string name
+        string slug UK
+    }
+    
+    forms {
+        uuid id PK
+        uuid tenant_id FK
+        string title
+        string slug
+        enum status
+    }
+    
+    form_versions {
+        uuid id PK
+        uuid form_id FK
+        int version_number
+        json schema
+        bool is_published
+    }
+    
+    form_submissions {
+        uuid id PK
+        uuid form_id FK
+        json data
+        enum status
+    }
 ```
 
 ---
