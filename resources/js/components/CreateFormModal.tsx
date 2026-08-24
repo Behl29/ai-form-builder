@@ -53,9 +53,26 @@ export function CreateFormModal({ open, onClose, onSubmit, onFormCreated, loadin
             });
 
             const jobUuid = data.job_uuid;
-            setAiStatus('Processing...');
 
-            // Poll for status
+            // If sync queue, job is already done
+            if (data.status === 'succeeded') {
+                setAiStatus('Creating form...');
+                await api.post('/ai/create-form', { job_uuid: jobUuid });
+                setAiStatus('Form created!');
+                handleClose();
+                onFormCreated?.();
+                return;
+            }
+
+            if (data.status === 'failed') {
+                setErrors({ prompt: data.error_message || 'AI generation failed' });
+                setAiLoading(false);
+                setAiStatus('');
+                return;
+            }
+
+            // Async queue - need to poll
+            setAiStatus('Processing...');
             let attempts = 0;
             const maxAttempts = 20;
 
@@ -72,7 +89,6 @@ export function CreateFormModal({ open, onClose, onSubmit, onFormCreated, loadin
 
                     if (status === 'succeeded') {
                         setAiStatus('Creating form...');
-                        // Create form with generated schema
                         await api.post('/ai/create-form', { job_uuid: jobUuid });
                         setAiStatus('Form created!');
                         handleClose();
@@ -82,13 +98,11 @@ export function CreateFormModal({ open, onClose, onSubmit, onFormCreated, loadin
                         setAiLoading(false);
                         setAiStatus('');
                     } else {
-                        // Still running or queued
                         attempts++;
-                        setTimeout(pollStatus, 5000); // 5 seconds between polls
+                        setTimeout(pollStatus, 5000);
                     }
                 } catch (err: any) {
                     if (err.response?.status === 429) {
-                        // Rate limited, wait longer
                         const retryAfter = err.response?.data?.retry_after || 60;
                         setAiStatus(`Rate limited, waiting ${retryAfter}s...`);
                         setTimeout(pollStatus, retryAfter * 1000);
@@ -100,7 +114,6 @@ export function CreateFormModal({ open, onClose, onSubmit, onFormCreated, loadin
                 }
             };
 
-            // Wait a bit before first poll
             setTimeout(pollStatus, 3000);
         } catch (err: any) {
             setErrors({ prompt: err.response?.data?.message || 'Failed to generate form' });

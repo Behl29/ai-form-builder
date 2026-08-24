@@ -40,11 +40,23 @@ class AIController extends Controller
             ])
         );
 
-        return response()->json([
-            'message' => 'Form generation queued',
+        // Refresh job to get updated status (sync queue completes immediately)
+        $job->refresh();
+
+        $response = [
+            'message' => $job->isSucceeded() ? 'Form generated' : 'Form generation queued',
             'job_uuid' => $job->job_uuid,
             'status' => $job->status,
-        ], 202);
+        ];
+
+        // If sync queue, job is already done - include result
+        if ($job->isSucceeded()) {
+            $response['result_schema'] = $job->result_schema;
+        } elseif ($job->isFailed()) {
+            $response['error_message'] = $job->error_message;
+        }
+
+        return response()->json($response, $job->isSucceeded() ? 200 : 202);
     }
 
     /**
