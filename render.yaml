@@ -10,9 +10,14 @@ services:
       - key: APP_ENV
         value: production
       - key: APP_KEY
-        value: base64:N6nKPLxi6AceFZF7cJvzRlMfHprSUU691ySdboiOjbc=
+        generateValue: true
       - key: APP_DEBUG
         value: "false"
+      - key: APP_URL
+        fromService:
+          type: web
+          name: ai-form-builder
+          property: host
       - key: DB_CONNECTION
         value: sqlite
       - key: CACHE_STORE
@@ -21,5 +26,7 @@ services:
         value: file
       - key: QUEUE_CONNECTION
         value: sync
+      - key: LOG_CHANNEL
+        value: stderr
       - key: MAIL_MAILER
         value: log
