@@ -23,7 +23,11 @@ const statusTabs: { value: FormStatus | 'all'; label: string }[] = [
     { value: 'archived', label: 'Archived' },
 ];
 
-export function FormsDashboard() {
+interface FormsDashboardProps {
+    onEditForm?: (formId: number) => void;
+}
+
+export function FormsDashboard({ onEditForm }: FormsDashboardProps) {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<FormStatus | 'all'>('all');
@@ -59,12 +63,20 @@ export function FormsDashboard() {
 
     // Handlers
     const handleCreate = async (formData: { title: string; description?: string }) => {
-        await createForm.mutateAsync(formData);
+        const newForm = await createForm.mutateAsync(formData);
         setCreateModalOpen(false);
+        // Navigate to editor after creation
+        if (onEditForm) {
+            onEditForm(newForm.id);
+        }
     };
 
     const handleEdit = (form: Form) => {
-        window.location.href = `/forms/${form.id}/edit`;
+        if (onEditForm) {
+            onEditForm(form.id);
+        } else {
+            window.location.href = `/forms/${form.id}/edit`;
+        }
     };
 
     const handleDuplicate = async (form: Form) => {
