@@ -64,6 +64,11 @@ class Form extends Model
         return $this->hasMany(FormVersion::class)->where('is_published', true)->latest();
     }
 
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(FormSubmission::class);
+    }
+
     public function isDraft(): bool
     {
         return $this->status === self::STATUS_DRAFT;

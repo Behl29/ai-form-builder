@@ -25,9 +25,10 @@ const statusTabs: { value: FormStatus | 'all'; label: string }[] = [
 
 interface FormsDashboardProps {
     onEditForm?: (formId: number) => void;
+    onViewSubmissions?: (formId: number) => void;
 }
 
-export function FormsDashboard({ onEditForm }: FormsDashboardProps) {
+export function FormsDashboard({ onEditForm, onViewSubmissions }: FormsDashboardProps) {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<FormStatus | 'all'>('all');
@@ -222,6 +223,7 @@ export function FormsDashboard({ onEditForm }: FormsDashboardProps) {
                                     key={form.id}
                                     form={form}
                                     onEdit={handleEdit}
+                                    onViewSubmissions={onViewSubmissions ? (f) => onViewSubmissions(f.id) : undefined}
                                     onDuplicate={handleDuplicate}
                                     onPublish={handlePublish}
                                     onUnpublish={handleUnpublish}

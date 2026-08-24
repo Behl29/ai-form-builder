@@ -4,6 +4,7 @@ import {
     Check,
     Cloud,
     CloudOff,
+    Code,
     Eye,
     Loader2,
     Monitor,
@@ -23,6 +24,7 @@ interface BuilderToolbarProps {
     onSave: () => void;
     onPublish: () => void;
     onPreview: () => void;
+    onToggleJson?: () => void;
     isSaving?: boolean;
     isPublishing?: boolean;
 }
@@ -36,6 +38,7 @@ export function BuilderToolbar({
     onSave,
     onPublish,
     onPreview,
+    onToggleJson,
     isSaving,
     isPublishing,
 }: BuilderToolbarProps) {
@@ -92,6 +95,17 @@ export function BuilderToolbar({
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-2">
+                    {onToggleJson && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={onToggleJson}
+                            title="Edit JSON"
+                        >
+                            <Code className="w-4 h-4" />
+                        </Button>
+                    )}
+
                     <Button
                         variant="ghost"
                         size="sm"

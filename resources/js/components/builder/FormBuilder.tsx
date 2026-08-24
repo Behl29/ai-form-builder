@@ -10,17 +10,18 @@ import {
     useSensor,
     useSensors,
 } from '@dnd-kit/core';
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { useCallback, useEffect, useState } from 'react';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { useCallback, useState } from 'react';
 import type { FieldType, Form, FormField, FormSchema } from '../../types/form-schema';
 import { useAutosave } from '../../hooks/useAutosave';
 import { usePublishForm } from '../../hooks/useForms';
-import { ErrorState, LoadingSpinner } from '../ui';
+import { ErrorState } from '../ui';
 import { BuilderProvider, useBuilder } from './BuilderContext';
 import { BuilderToolbar } from './BuilderToolbar';
 import { ConfigPanel } from './ConfigPanel';
 import { FieldDragOverlay, FormCanvas } from './FormCanvas';
 import { FieldPalette, PaletteFieldOverlay } from './FieldPalette';
+import { JsonEditor } from './JsonEditor';
 
 interface FormBuilderProps {
     form: Form;
@@ -49,12 +50,13 @@ interface FormBuilderInnerProps {
 }
 
 function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
-    const { state, addField, moveField, reorderFields, reorderSections, markSaved } = useBuilder();
+    const { state, setSchema, addField, moveField, reorderFields, reorderSections, markSaved } = useBuilder();
     const { schema, isDirty } = state;
 
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeType, setActiveType] = useState<'field' | 'palette' | 'section' | null>(null);
     const [activeData, setActiveData] = useState<FormField | FieldType | null>(null);
+    const [showJsonEditor, setShowJsonEditor] = useState(false);
 
     const publishForm = usePublishForm();
 
@@ -99,9 +101,9 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
         }
     }, []);
 
-    // Handle drag over (for cross-section moves)
+    // Handle drag over
     const handleDragOver = useCallback((event: DragOverEvent) => {
-        // Could implement visual feedback here
+        // Visual feedback handled by drop zones
     }, []);
 
     // Handle drag end
@@ -125,13 +127,12 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
             return;
         }
 
-        // Palette field dropped on existing field (insert before)
+        // Palette field dropped on existing field
         if (activeData?.type === 'palette-field' && overData?.type === 'field') {
             const fieldType = activeData.fieldType as FieldType;
             const targetSectionId = overData.sectionId as string;
             const targetField = overData.field as FormField;
 
-            // Find index of target field
             const section = state.schema.sections.find((s) => s.id === targetSectionId);
             if (section) {
                 const targetIndex = section.fields.findIndex((f) => f.id === targetField.id);
@@ -140,7 +141,7 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
             return;
         }
 
-        // Field reordering within same section
+        // Field reordering
         if (activeData?.type === 'field' && overData?.type === 'field') {
             const activeField = activeData.field as FormField;
             const overField = overData.field as FormField;
@@ -148,7 +149,6 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
             const overSectionId = overData.sectionId as string;
 
             if (activeSectionId === overSectionId) {
-                // Same section - reorder
                 const section = state.schema.sections.find((s) => s.id === activeSectionId);
                 if (section) {
                     const oldIndex = section.fields.findIndex((f) => f.id === activeField.id);
@@ -158,7 +158,6 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
                     }
                 }
             } else {
-                // Different section - move
                 const targetSection = state.schema.sections.find((s) => s.id === overSectionId);
                 if (targetSection) {
                     const targetIndex = targetSection.fields.findIndex((f) => f.id === overField.id);
@@ -201,7 +200,6 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
 
     // Handle publish
     const handlePublish = useCallback(async () => {
-        // Save first if dirty
         if (isDirty) {
             await save();
         }
@@ -210,8 +208,13 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
 
     // Handle preview
     const handlePreview = useCallback(() => {
-        window.open(`/forms/${form.slug}/preview`, '_blank');
+        window.open(`/forms/${form.slug}`, '_blank');
     }, [form.slug]);
+
+    // Handle JSON editor update
+    const handleJsonUpdate = useCallback((newSchema: FormSchema) => {
+        setSchema(newSchema);
+    }, [setSchema]);
 
     // Render drag overlay
     const renderDragOverlay = () => {
@@ -239,6 +242,7 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
                 onSave={handleSave}
                 onPublish={handlePublish}
                 onPreview={handlePreview}
+                onToggleJson={() => setShowJsonEditor(true)}
                 isSaving={isSaving}
                 isPublishing={publishForm.isPending}
             />
@@ -260,6 +264,15 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
                     {renderDragOverlay()}
                 </DragOverlay>
             </DndContext>
+
+            {/* JSON Editor Modal */}
+            {showJsonEditor && (
+                <JsonEditor
+                    schema={schema}
+                    onUpdate={handleJsonUpdate}
+                    onClose={() => setShowJsonEditor(false)}
+                />
+            )}
         </div>
     );
 }

@@ -4,6 +4,7 @@ import {
     Copy,
     Edit,
     Eye,
+    FileText,
     MoreVertical,
     RotateCcw,
     Trash2,
@@ -17,6 +18,7 @@ import { Badge, Button, ConfirmDialog } from './ui';
 interface FormCardProps {
     form: Form;
     onEdit: (form: Form) => void;
+    onViewSubmissions?: (form: Form) => void;
     onDuplicate: (form: Form) => void;
     onPublish: (form: Form) => void;
     onUnpublish: (form: Form) => void;
@@ -35,6 +37,7 @@ const statusConfig: Record<FormStatus, { label: string; variant: 'default' | 'su
 export function FormCard({
     form,
     onEdit,
+    onViewSubmissions,
     onDuplicate,
     onPublish,
     onUnpublish,
@@ -88,9 +91,14 @@ export function FormCard({
                                     <MenuItem icon={<Edit className="w-4 h-4" />} onClick={() => handleAction(() => onEdit(form))}>
                                         Edit
                                     </MenuItem>
-                                    <MenuItem icon={<Eye className="w-4 h-4" />} onClick={() => handleAction(() => window.open(`/forms/${form.slug}/preview`, '_blank'))}>
+                                    <MenuItem icon={<Eye className="w-4 h-4" />} onClick={() => handleAction(() => window.open(`/forms/${form.slug}`, '_blank'))}>
                                         Preview
                                     </MenuItem>
+                                    {onViewSubmissions && (
+                                        <MenuItem icon={<FileText className="w-4 h-4" />} onClick={() => handleAction(() => onViewSubmissions(form))}>
+                                            Submissions
+                                        </MenuItem>
+                                    )}
                                     <MenuItem icon={<Copy className="w-4 h-4" />} onClick={() => handleAction(() => onDuplicate(form))}>
                                         Duplicate
                                     </MenuItem>
