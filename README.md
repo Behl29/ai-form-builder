@@ -11,6 +11,17 @@ An AI-powered form builder application built with Laravel and React.
 - **Queue Worker:** Laravel Horizon
 - **Build Tool:** Vite
 
+## Frontend Libraries
+
+The form builder uses the following open-source libraries:
+
+- **[@dnd-kit/core](https://dndkit.com/)** - Modern drag and drop toolkit for React
+- **[@dnd-kit/sortable](https://dndkit.com/)** - Sortable preset for dnd-kit
+- **[@tanstack/react-query](https://tanstack.com/query)** - Data fetching and caching
+- **[lucide-react](https://lucide.dev/)** - Beautiful icons
+- **[clsx](https://github.com/lukeed/clsx)** - Utility for constructing className strings
+- **[axios](https://axios-http.com/)** - HTTP client
+
 ## Prerequisites
 
 - Docker & Docker Compose
@@ -95,6 +106,95 @@ npm run dev
 php artisan horizon
 ```
 
+## Form Builder
+
+The form builder provides a drag-and-drop interface for creating forms.
+
+### Features
+
+- **Field Palette:** 14 field types (text, textarea, number, email, phone, date, select, radio, checkbox group, checkbox, file, heading, rating, URL)
+- **Drag & Drop:** Add fields by dragging from palette or clicking
+- **Reordering:** Drag to reorder fields and sections
+- **Configuration Panel:** Type-specific field properties
+- **Preview Modes:** Desktop and mobile preview
+- **Autosave:** Debounced automatic saving with status indicator
+- **Keyboard Accessible:** Full keyboard navigation support
+
+### Field Types
+
+| Type | Description |
+|------|-------------|
+| text | Single-line text input |
+| textarea | Multi-line text input |
+| number | Numeric input with min/max/step |
+| email | Email address input |
+| phone | Phone number input |
+| date | Date picker |
+| select | Dropdown selection |
+| radio | Radio button group |
+| checkbox_group | Multiple checkboxes |
+| checkbox | Single checkbox |
+| file | File upload |
+| heading | Section heading (presentational) |
+| rating | Star rating |
+| url | URL input |
+
+### Schema
+
+Forms are stored as versioned JSON schemas. See [docs/SCHEMA.md](docs/SCHEMA.md) for the complete schema specification.
+
+## API Endpoints
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/register | Register new user with tenant |
+| POST | /api/login | Login and get token |
+| POST | /api/logout | Logout (requires auth) |
+| GET | /api/user | Get current user profile |
+| POST | /api/tenants/{id}/switch | Switch active tenant |
+
+### Forms
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/forms | List forms (search, filter, paginate) |
+| POST | /api/forms | Create form |
+| GET | /api/forms/{id} | Get form details |
+| PUT | /api/forms/{id} | Update form metadata |
+| DELETE | /api/forms/{id} | Delete form |
+| PUT | /api/forms/{id}/schema | Update form schema |
+| POST | /api/forms/{id}/publish | Publish form |
+| POST | /api/forms/{id}/unpublish | Unpublish form |
+| POST | /api/forms/{id}/archive | Archive form |
+| POST | /api/forms/{id}/restore | Restore archived form |
+| POST | /api/forms/{id}/duplicate | Duplicate form |
+
+### Form Versions
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/forms/{id}/versions | List form versions |
+| GET | /api/forms/{id}/versions/{versionId} | Get specific version |
+| POST | /api/forms/{id}/versions/{versionId}/restore | Restore version |
+
+## Testing
+
+### Backend Tests
+```bash
+# Docker
+docker-compose exec app php artisan test
+
+# Local
+php artisan test
+```
+
+### Frontend Tests
+```bash
+npm run test
+```
+
 ## Database
 
 Run migrations:
@@ -127,17 +227,6 @@ Development with hot reload:
 npm run dev
 ```
 
-## Testing
-
-Run test suite:
-```bash
-# Docker
-docker-compose exec app php artisan test
-
-# Local
-php artisan test
-```
-
 ## Queue / Horizon
 
 Start Horizon (manages queue workers):
@@ -157,38 +246,11 @@ Verify the application is running:
 curl http://localhost:8000/api/health
 ```
 
-## Authentication
-
-The application uses Laravel Sanctum for API authentication with multi-tenant support.
-
-### Demo Account
+## Demo Account
 
 After running seeders, a demo account is available:
 - Email: `demo@example.com` (configurable via `DEMO_USER_EMAIL`)
 - Password: `password` (configurable via `DEMO_USER_PASSWORD`)
-
-### API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/register | Register new user with tenant |
-| POST | /api/login | Login and get token |
-| POST | /api/logout | Logout (requires auth) |
-| GET | /api/user | Get current user profile |
-| POST | /api/tenants/{id}/switch | Switch active tenant |
-
-### Example: Login
-```bash
-curl -X POST http://localhost:8000/api/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "demo@example.com", "password": "password"}'
-```
-
-### Example: Authenticated Request
-```bash
-curl http://localhost:8000/api/user \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
 
 ## Docker Services
 
