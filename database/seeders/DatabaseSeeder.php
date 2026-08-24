@@ -2,24 +2,31 @@
 
 namespace Database\Seeders;
 
+use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Create demo tenant
+        $demoTenant = Tenant::create([
+            'name' => 'Demo Organization',
+            'slug' => 'demo-org',
         ]);
+
+        // Create demo user
+        $demoUser = User::create([
+            'name' => 'Demo User',
+            'email' => env('DEMO_USER_EMAIL', 'demo@example.com'),
+            'password' => Hash::make(env('DEMO_USER_PASSWORD', 'password')),
+            'email_verified_at' => now(),
+            'current_tenant_id' => $demoTenant->id,
+        ]);
+
+        // Attach user to tenant as owner
+        $demoTenant->users()->attach($demoUser->id, ['role' => 'owner']);
     }
 }
