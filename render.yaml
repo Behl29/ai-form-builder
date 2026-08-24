@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: ai-form-builder
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: APP_NAME
+        value: "AI Form Builder"
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        value: base64:N6nKPLxi6AceFZF7cJvzRlMfHprSUU691ySdboiOjbc=
+      - key: APP_DEBUG
+        value: "false"
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: CACHE_STORE
+        value: file
+      - key: SESSION_DRIVER
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: MAIL_MAILER
+        value: log
