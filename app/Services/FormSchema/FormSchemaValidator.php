@@ -29,6 +29,24 @@ class FormSchemaValidator
         return true;
     }
 
+    /**
+     * Validate and return errors without throwing
+     */
+    public function validateAndGetErrors(array $schema): array
+    {
+        $this->errors = [];
+        $this->fieldIds = [];
+        $this->fieldKeys = [];
+
+        $this->validateSchemaSize($schema);
+        $this->validateSchemaVersion($schema);
+        $this->validateMetadata($schema);
+        $this->validateSettings($schema);
+        $this->validateSections($schema);
+
+        return $this->errors;
+    }
+
     public function getErrors(): array
     {
         return $this->errors;
