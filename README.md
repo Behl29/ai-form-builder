@@ -157,6 +157,39 @@ Verify the application is running:
 curl http://localhost:8000/api/health
 ```
 
+## Authentication
+
+The application uses Laravel Sanctum for API authentication with multi-tenant support.
+
+### Demo Account
+
+After running seeders, a demo account is available:
+- Email: `demo@example.com` (configurable via `DEMO_USER_EMAIL`)
+- Password: `password` (configurable via `DEMO_USER_PASSWORD`)
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/register | Register new user with tenant |
+| POST | /api/login | Login and get token |
+| POST | /api/logout | Logout (requires auth) |
+| GET | /api/user | Get current user profile |
+| POST | /api/tenants/{id}/switch | Switch active tenant |
+
+### Example: Login
+```bash
+curl -X POST http://localhost:8000/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "demo@example.com", "password": "password"}'
+```
+
+### Example: Authenticated Request
+```bash
+curl http://localhost:8000/api/user \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
 ## Docker Services
 
 | Service | Port | Description |
