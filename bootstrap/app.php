@@ -12,7 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->api(prepend: [
+            \App\Http\Middleware\SecurityHeaders::class,
+        ]);
+
+        $middleware->alias([
+            'rate.limit' => \App\Http\Middleware\RateLimitByAction::class,
+            'tenant.set' => \App\Http\Middleware\SetTenantContext::class,
+            'tenant.ensure' => \App\Http\Middleware\EnsureTenantContext::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
