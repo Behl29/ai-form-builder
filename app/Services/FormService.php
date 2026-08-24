@@ -2,13 +2,14 @@
 
 namespace App\Services;
 
-use App\Exceptions\SchemaValidationException;
 use App\Models\Form;
 use App\Models\FormVersion;
 use App\Models\User;
 use App\Services\FormSchema\FormSchemaContract;
 use App\Services\FormSchema\FormSchemaValidator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class FormService
 {
@@ -16,6 +17,26 @@ class FormService
         private FormSchemaValidator $validator,
         private TenantService $tenantService
     ) {}
+
+    public function list(array $filters = []): LengthAwarePaginator
+    {
+        $query = Form::with('currentVersion:id,form_id,version_number,schema_version')
+            ->orderByDesc('updated_at');
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        return $query->paginate($filters['per_page'] ?? 15);
+    }
 
     public function create(User $user, array $data): Form
     {
@@ -25,11 +46,14 @@ class FormService
         $this->validator->validateConditionReferences($schema);
 
         return DB::transaction(function () use ($user, $data, $schema) {
+            $slug = $data['slug'] ?? $this->generateUniqueSlug($data['title'] ?? 'form');
+
             $form = Form::create([
                 'tenant_id' => $this->tenantService->current()->id,
                 'created_by' => $user->id,
                 'title' => $data['title'] ?? $schema['metadata']['title'] ?? 'Untitled Form',
                 'description' => $data['description'] ?? $schema['metadata']['description'] ?? null,
+                'slug' => $slug,
                 'status' => Form::STATUS_DRAFT,
                 'success_message' => $data['success_message'] ?? null,
                 'settings' => $data['settings'] ?? null,
@@ -58,15 +82,18 @@ class FormService
         }
 
         return DB::transaction(function () use ($form, $user, $data) {
-            // Update form metadata
-            $form->update([
-                'title' => $data['title'] ?? $form->title,
-                'description' => $data['description'] ?? $form->description,
-                'success_message' => $data['success_message'] ?? $form->success_message,
-                'settings' => $data['settings'] ?? $form->settings,
-            ]);
+            $updateData = array_filter([
+                'title' => $data['title'] ?? null,
+                'description' => array_key_exists('description', $data) ? $data['description'] : null,
+                'slug' => $data['slug'] ?? null,
+                'success_message' => array_key_exists('success_message', $data) ? $data['success_message'] : null,
+                'settings' => array_key_exists('settings', $data) ? $data['settings'] : null,
+            ], fn($v) => $v !== null);
 
-            // Create new version if schema changed
+            if (!empty($updateData)) {
+                $form->update($updateData);
+            }
+
             if (isset($data['schema'])) {
                 $this->createNewVersion($form, $user, $data['schema'], FormVersion::CHANGE_UPDATED);
             }
@@ -87,14 +114,21 @@ class FormService
 
     public function publish(Form $form, User $user): Form
     {
-        return DB::transaction(function () use ($form, $user) {
-            $currentVersion = $form->currentVersion;
+        if ($form->isArchived()) {
+            throw new \RuntimeException('Cannot publish an archived form. Restore it first.');
+        }
 
-            if (!$currentVersion) {
-                throw new \RuntimeException('Form has no version to publish');
-            }
+        $currentVersion = $form->currentVersion;
 
-            // If current version is already published, create a new published version
+        if (!$currentVersion) {
+            throw new \RuntimeException('Form has no version to publish.');
+        }
+
+        // Validate schema before publishing
+        $this->validator->validate($currentVersion->schema);
+        $this->validator->validateConditionReferences($currentVersion->schema);
+
+        return DB::transaction(function () use ($form, $user, $currentVersion) {
             if ($currentVersion->isPublished()) {
                 $newVersion = $this->createNewVersion(
                     $form,
@@ -113,6 +147,17 @@ class FormService
         });
     }
 
+    public function unpublish(Form $form): Form
+    {
+        if (!$form->isPublished()) {
+            throw new \RuntimeException('Form is not published.');
+        }
+
+        $form->update(['status' => Form::STATUS_DRAFT]);
+
+        return $form;
+    }
+
     public function archive(Form $form): Form
     {
         $form->update(['status' => Form::STATUS_ARCHIVED]);
@@ -121,14 +166,26 @@ class FormService
 
     public function restore(Form $form): Form
     {
+        if (!$form->isArchived()) {
+            throw new \RuntimeException('Form is not archived.');
+        }
+
         $form->update(['status' => Form::STATUS_DRAFT]);
         return $form;
+    }
+
+    public function delete(Form $form): bool
+    {
+        return DB::transaction(function () use ($form) {
+            $form->versions()->delete();
+            return $form->delete();
+        });
     }
 
     public function restoreVersion(Form $form, User $user, FormVersion $version): Form
     {
         if ($version->form_id !== $form->id) {
-            throw new \InvalidArgumentException('Version does not belong to this form');
+            throw new \InvalidArgumentException('Version does not belong to this form.');
         }
 
         return DB::transaction(function () use ($form, $user, $version) {
@@ -142,7 +199,7 @@ class FormService
         $currentVersion = $form->currentVersion;
 
         if (!$currentVersion) {
-            throw new \RuntimeException('Form has no version to duplicate');
+            throw new \RuntimeException('Form has no version to duplicate.');
         }
 
         $schema = $currentVersion->schema;
@@ -172,5 +229,18 @@ class FormService
         $form->update(['current_version_id' => $version->id]);
 
         return $version;
+    }
+
+    private function generateUniqueSlug(string $title): string
+    {
+        $baseSlug = Str::slug($title);
+        $slug = $baseSlug . '-' . Str::random(8);
+        $tenantId = $this->tenantService->current()->id;
+
+        while (Form::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . Str::random(8);
+        }
+
+        return $slug;
     }
 }

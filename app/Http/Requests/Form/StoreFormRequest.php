@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Form;
 
+use App\Services\TenantService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreFormRequest extends FormRequest
 {
@@ -13,12 +15,29 @@ class StoreFormRequest extends FormRequest
 
     public function rules(): array
     {
+        $tenantId = app(TenantService::class)->current()?->id;
+
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'slug' => [
+                'nullable',
+                'string',
+                'max:100',
+                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+                Rule::unique('forms', 'slug')->where('tenant_id', $tenantId),
+            ],
             'success_message' => ['nullable', 'string', 'max:1000'],
             'settings' => ['nullable', 'array'],
             'schema' => ['nullable', 'array'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'slug.regex' => 'Slug must contain only lowercase letters, numbers, and hyphens.',
+            'slug.unique' => 'This slug is already in use.',
         ];
     }
 }
