@@ -17,10 +17,9 @@ WORKDIR /var/www/html
 COPY . .
 
 # Install dependencies and build
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction \
+RUN composer install --no-dev --optimize-autoloader --no-interaction \
     && npm install \
-    && npm run build \
-    && composer dump-autoload --optimize
+    && npm run build
 
 # Setup Laravel directories and permissions
 RUN mkdir -p storage/framework/{sessions,views,cache} \
@@ -31,4 +30,4 @@ RUN mkdir -p storage/framework/{sessions,views,cache} \
 
 EXPOSE 8080
 
-CMD php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8080
+CMD php artisan key:generate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8080
