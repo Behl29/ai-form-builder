@@ -102,7 +102,8 @@ class XlsxParser
         $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
 
         for ($col = 1; $col <= $highestColumnIndex; $col++) {
-            $value = $sheet->getCellByColumnAndRow($col, 1)->getValue();
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
+            $value = $sheet->getCell($colLetter . '1')->getValue();
             if ($value !== null && $value !== '') {
                 $headers[] = (string) $value;
             }
@@ -287,7 +288,8 @@ class XlsxParser
     {
         $data = [];
         for ($col = 1; $col <= $columnCount; $col++) {
-            $data[] = (string) ($sheet->getCellByColumnAndRow($col, $row)->getValue() ?? '');
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
+            $data[] = (string) ($sheet->getCell($colLetter . $row)->getValue() ?? '');
         }
         return $data;
     }
