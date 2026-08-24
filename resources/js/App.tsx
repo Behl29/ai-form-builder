@@ -1,10 +1,19 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { FormsDashboard } from './pages/FormsDashboard';
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 1000 * 60, // 1 minute
+            retry: 1,
+        },
+    },
+});
+
 export default function App() {
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-            <div className="text-center">
-                <h1 className="text-4xl font-bold text-gray-900">AI Form Builder</h1>
-                <p className="mt-4 text-gray-600">Application is running</p>
-            </div>
-        </div>
+        <QueryClientProvider client={queryClient}>
+            <FormsDashboard />
+        </QueryClientProvider>
     );
 }
