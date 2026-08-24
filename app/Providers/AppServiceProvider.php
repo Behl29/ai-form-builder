@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Form;
 use App\Models\Tenant;
+use App\Policies\FormPolicy;
 use App\Policies\TenantPolicy;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\Gate;
@@ -18,5 +20,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Tenant::class, TenantPolicy::class);
+        Gate::policy(Form::class, FormPolicy::class);
     }
 }

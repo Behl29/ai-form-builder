@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\FormController;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\SetTenantContext;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,17 @@ Route::middleware(['auth:sanctum', SetTenantContext::class])->group(function () 
 
     // Tenant-scoped routes (require active tenant context)
     Route::middleware(EnsureTenantContext::class)->group(function () {
-        // Future form routes will go here
+        // Forms
+        Route::apiResource('forms', FormController::class);
+        Route::put('/forms/{form}/schema', [FormController::class, 'updateSchema']);
+        Route::post('/forms/{form}/publish', [FormController::class, 'publish']);
+        Route::post('/forms/{form}/archive', [FormController::class, 'archive']);
+        Route::post('/forms/{form}/restore', [FormController::class, 'restore']);
+        Route::post('/forms/{form}/duplicate', [FormController::class, 'duplicate']);
+
+        // Form versions
+        Route::get('/forms/{form}/versions', [FormController::class, 'versions']);
+        Route::get('/forms/{form}/versions/{version}', [FormController::class, 'showVersion']);
+        Route::post('/forms/{form}/versions/{version}/restore', [FormController::class, 'restoreVersion']);
     });
 });
