@@ -1,59 +1,188 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# AI Form Builder
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+An AI-powered form builder application built with Laravel and React.
 
-## About Laravel
+## Technology Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Backend:** PHP 8.2+, Laravel 12
+- **Frontend:** React 18, TypeScript, Tailwind CSS 4
+- **Database:** MySQL 8
+- **Cache/Queue:** Redis
+- **Queue Worker:** Laravel Horizon
+- **Build Tool:** Vite
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Prerequisites
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Docker & Docker Compose
+- Git
 
-## Learning Laravel
+For local development without Docker:
+- PHP 8.2+
+- Composer
+- Node.js 20+
+- MySQL 8
+- Redis
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Docker Setup (Recommended)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd ai-form-builder
+```
 
-## Laravel Sponsors
+2. Copy environment file:
+```bash
+cp .env.example .env
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+3. Start Docker containers:
+```bash
+docker-compose up -d --build
+```
 
-### Premium Partners
+4. Install PHP dependencies:
+```bash
+docker-compose exec app composer install
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+5. Generate application key:
+```bash
+docker-compose exec app php artisan key:generate
+```
 
-## Contributing
+6. Run database migrations:
+```bash
+docker-compose exec app php artisan migrate
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+7. Access the application:
+- Application: http://localhost:8000
+- Vite dev server: http://localhost:5173
 
-## Code of Conduct
+## Local Setup (Without Docker)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+1. Clone and install dependencies:
+```bash
+git clone <repository-url>
+cd ai-form-builder
+composer install
+npm install
+```
 
-## Security Vulnerabilities
+2. Configure environment:
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+3. Update `.env` with your local database and Redis settings.
 
-## License
+4. Run migrations:
+```bash
+php artisan migrate
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+5. Start development servers:
+```bash
+# Terminal 1 - Laravel
+php artisan serve
+
+# Terminal 2 - Vite
+npm run dev
+
+# Terminal 3 - Queue worker (optional)
+php artisan horizon
+```
+
+## Database
+
+Run migrations:
+```bash
+# Docker
+docker-compose exec app php artisan migrate
+
+# Local
+php artisan migrate
+```
+
+Run seeders:
+```bash
+# Docker
+docker-compose exec app php artisan db:seed
+
+# Local
+php artisan db:seed
+```
+
+## Frontend Development
+
+Build for production:
+```bash
+npm run build
+```
+
+Development with hot reload:
+```bash
+npm run dev
+```
+
+## Testing
+
+Run test suite:
+```bash
+# Docker
+docker-compose exec app php artisan test
+
+# Local
+php artisan test
+```
+
+## Queue / Horizon
+
+Start Horizon (manages queue workers):
+```bash
+# Docker - runs automatically via horizon container
+
+# Local
+php artisan horizon
+```
+
+Access Horizon dashboard at `/horizon` (local environment only).
+
+## Health Check
+
+Verify the application is running:
+```bash
+curl http://localhost:8000/api/health
+```
+
+## Docker Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| nginx | 8000 | Web server |
+| app | 9000 | PHP-FPM |
+| mysql | 3306 | Database |
+| redis | 6379 | Cache/Queue |
+| horizon | - | Queue worker |
+| node | 5173 | Vite dev server |
+
+## Useful Commands
+
+```bash
+# View logs
+docker-compose logs -f app
+
+# Enter app container
+docker-compose exec app bash
+
+# Clear caches
+docker-compose exec app php artisan optimize:clear
+
+# Stop all containers
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
+```
