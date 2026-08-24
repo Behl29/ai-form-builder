@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AIController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FormController;
+use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\PublicFormController;
 use App\Http\Controllers\Api\SubmissionController;
 use App\Http\Controllers\Api\VersionController;
@@ -71,6 +72,17 @@ Route::middleware(['auth:sanctum', SetTenantContext::class])->group(function () 
             Route::post('/forms/{form}/preview-diff', [AIController::class, 'previewDiff'])->name('ai.preview-diff');
             Route::post('/forms/{form}/accept', [AIController::class, 'accept'])->name('ai.accept');
             Route::post('/create-form', [AIController::class, 'createForm'])->name('ai.create-form');
+        });
+
+        // Document Import
+        Route::prefix('import')->group(function () {
+            Route::get('/', [ImportController::class, 'index'])->name('import.index');
+            Route::post('/upload', [ImportController::class, 'upload'])->name('import.upload');
+            Route::get('/{jobUuid}', [ImportController::class, 'status'])->name('import.status');
+            Route::get('/{jobUuid}/preview', [ImportController::class, 'preview'])->name('import.preview');
+            Route::post('/{jobUuid}/correct', [ImportController::class, 'correct'])->name('import.correct');
+            Route::post('/{jobUuid}/commit', [ImportController::class, 'commit'])->name('import.commit');
+            Route::delete('/{jobUuid}', [ImportController::class, 'cancel'])->name('import.cancel');
         });
     });
 });
