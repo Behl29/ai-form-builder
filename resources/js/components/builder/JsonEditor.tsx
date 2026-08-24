@@ -50,8 +50,6 @@ export function JsonEditor({ schema, onUpdate, onClose }: JsonEditorProps) {
         const pathParts = path.replace(/\[(\d+)\]/g, '.$1').split('.');
 
         let currentDepth = 0;
-        let targetDepth = 0;
-        let inTargetPath = false;
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -73,8 +71,6 @@ export function JsonEditor({ schema, onUpdate, onClose }: JsonEditorProps) {
                     if (p === pathParts.length - 1) {
                         return i + 1;
                     }
-                    inTargetPath = true;
-                    targetDepth = currentDepth + 1;
                 }
             }
 

@@ -44,7 +44,7 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
@@ -60,7 +60,7 @@ services:
     container_name: form-builder-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis-data:/data
     networks:
@@ -98,9 +98,9 @@ services:
       - .:/var/www/html
     networks:
       - form-builder-network
-    command: sh -c "npm install && npm run dev"
-    ports:
-      - "5173:5173"
+    command: sh -c "npm install && npm run build"
+    profiles:
+      - build
 
 networks:
   form-builder-network:

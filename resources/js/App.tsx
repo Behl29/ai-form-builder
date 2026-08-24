@@ -1,5 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LoginPage } from './pages/LoginPage';
 import { FormsDashboard } from './pages/FormsDashboard';
 import { FormEditorPage } from './pages/FormEditorPage';
 import { PublicFormPage } from './pages/PublicFormPage';
@@ -22,44 +24,38 @@ type View =
     | { type: 'submissions'; formId: number }
     | { type: 'public-form'; slug: string };
 
-export default function App() {
+function AppContent() {
+    const { isAuthenticated, isLoading, logout } = useAuth();
     const [view, setView] = useState<View>({ type: 'dashboard' });
 
-    // Parse initial route
     useEffect(() => {
         const parseRoute = () => {
             const path = window.location.pathname;
 
-            // Public form: /forms/{slug}
             const publicMatch = path.match(/^\/forms\/([a-z0-9-]+)$/);
             if (publicMatch && !path.includes('/edit') && !path.includes('/submissions')) {
                 setView({ type: 'public-form', slug: publicMatch[1] });
                 return;
             }
 
-            // Editor: /forms/{id}/edit
             const editMatch = path.match(/^\/forms\/(\d+)\/edit$/);
             if (editMatch) {
                 setView({ type: 'editor', formId: parseInt(editMatch[1]) });
                 return;
             }
 
-            // Submissions: /forms/{id}/submissions
             const submissionsMatch = path.match(/^\/forms\/(\d+)\/submissions$/);
             if (submissionsMatch) {
                 setView({ type: 'submissions', formId: parseInt(submissionsMatch[1]) });
                 return;
             }
 
-            // Default: dashboard
             setView({ type: 'dashboard' });
         };
 
         parseRoute();
-
-        const handlePopState = () => parseRoute();
-        window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
+        window.addEventListener('popstate', parseRoute);
+        return () => window.removeEventListener('popstate', parseRoute);
     }, []);
 
     const navigateTo = (newView: View) => {
@@ -79,12 +75,31 @@ export default function App() {
         setView(newView);
     };
 
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <LoadingSpinner />
+            </div>
+        );
+    }
+
+    // Public form - no auth required
+    if (view.type === 'public-form') {
+        return <PublicFormPage slug={view.slug} />;
+    }
+
+    // Auth required for other views
+    if (!isAuthenticated) {
+        return <LoginPage />;
+    }
+
     return (
-        <QueryClientProvider client={queryClient}>
+        <>
             {view.type === 'dashboard' && (
                 <FormsDashboard
                     onEditForm={(formId) => navigateTo({ type: 'editor', formId })}
                     onViewSubmissions={(formId) => navigateTo({ type: 'submissions', formId })}
+                    onLogout={logout}
                 />
             )}
             {view.type === 'editor' && (
@@ -99,14 +114,10 @@ export default function App() {
                     onBack={() => navigateTo({ type: 'dashboard' })}
                 />
             )}
-            {view.type === 'public-form' && (
-                <PublicFormPage slug={view.slug} />
-            )}
-        </QueryClientProvider>
+        </>
     );
 }
 
-// Wrapper to load form data for submissions
 function SubmissionsWrapper({ formId, onBack }: { formId: number; onBack: () => void }) {
     const { data: form, isLoading } = useForm(formId);
 
@@ -119,4 +130,14 @@ function SubmissionsWrapper({ formId, onBack }: { formId: number; onBack: () => 
     }
 
     return <SubmissionsDashboard form={form} onBack={onBack} />;
+}
+
+export default function App() {
+    return (
+        <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+                <AppContent />
+            </AuthProvider>
+        </QueryClientProvider>
+    );
 }

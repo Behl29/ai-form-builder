@@ -26,9 +26,10 @@ const statusTabs: { value: FormStatus | 'all'; label: string }[] = [
 interface FormsDashboardProps {
     onEditForm?: (formId: number) => void;
     onViewSubmissions?: (formId: number) => void;
+    onLogout?: () => void;
 }
 
-export function FormsDashboard({ onEditForm, onViewSubmissions }: FormsDashboardProps) {
+export function FormsDashboard({ onEditForm, onViewSubmissions, onLogout }: FormsDashboardProps) {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<FormStatus | 'all'>('all');
@@ -146,10 +147,17 @@ export function FormsDashboard({ onEditForm, onViewSubmissions }: FormsDashboard
                                 Create and manage your forms
                             </p>
                         </div>
-                        <Button onClick={() => setCreateModalOpen(true)}>
-                            <Plus className="w-4 h-4 mr-2" />
-                            Create Form
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button onClick={() => setCreateModalOpen(true)}>
+                                <Plus className="w-4 h-4 mr-2" />
+                                Create Form
+                            </Button>
+                            {onLogout && (
+                                <Button variant="secondary" onClick={onLogout}>
+                                    Logout
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </header>

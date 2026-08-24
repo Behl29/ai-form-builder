@@ -340,9 +340,12 @@ export function BuilderProvider({ children, initialSchema }: BuilderProviderProp
             label: getDefaultLabel(type),
         };
 
-        const field: FormField = FIELDS_WITH_OPTIONS.includes(type)
-            ? { ...baseField, options: [{ value: 'option1', label: 'Option 1' }] } as FormField
-            : baseField as FormField;
+        let field: FormField;
+        if (FIELDS_WITH_OPTIONS.includes(type)) {
+            field = { ...baseField, options: [{ value: 'option1', label: 'Option 1' }] } as FormField;
+        } else {
+            field = baseField as FormField;
+        }
 
         dispatch({ type: 'ADD_FIELD', payload: { sectionId, field, index } });
     }, []);
