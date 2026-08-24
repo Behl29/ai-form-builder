@@ -1,6 +1,8 @@
-# DECISIONS.md - Phase 6
+# DECISIONS.md - Phase 6 & 7
 
-## Feature 1: Form Versioning
+## Phase 6: Form Versioning & Conditional Logic
+
+### Feature 1: Form Versioning
 
 ### User Problem
 Form creators need to track changes over time, compare versions, and safely rollback to previous states without losing data. Submissions must always reference the exact form version used at submission time for data integrity and compliance.
@@ -200,3 +202,236 @@ Conditions are validated as part of schema validation when:
 - Hidden required field behavior
 - Section visibility cascading
 - Operator support by field type
+
+
+---
+
+## Phase 7: AI Form Generation and Editing
+
+### User Problem
+Form creators want to quickly generate forms from natural language descriptions and modify existing forms using plain English instructions, without manually configuring each field.
+
+### AI Provider Strategy
+
+**Abstraction Layer**
+```php
+interface FormAIProvider {
+    public function generateForm(string $prompt, array $options = []): AIResponse;
+    public function modifyForm(array $currentSchema, string $instruction, array $options = []): AIResponse;
+    public function getProviderName(): string;
+    public function getModelName(): string;
+    public function isAvailable(): bool;
+}
+```
+
+**Provider Implementations**
+- `OpenAIProvider`: Production provider using GPT-4o-mini
+- `MockAIProvider`: Deterministic responses for testing
+
+**Configuration**
+```env
+AI_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_TIMEOUT=60
+OPENAI_MAX_TOKENS=4096
+```
+
+### System Prompt Strategy
+
+**Generation Prompt**
+- Defines schema version and supported field types
+- Provides complete output format with examples
+- Lists field-specific properties (min, max, options, etc.)
+- Enforces rules: unique IDs, snake_case keys, logical sections
+- Requests JSON-only output (no markdown)
+
+**Modification Prompt**
+- Instructs to preserve existing IDs and keys
+- Only modify what is requested
+- Output complete modified schema
+- Preserve field order unless reordering requested
+
+### Output Contract
+
+AI must return valid JSON conforming to schema version 1.0:
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": { "title": "...", "description": "..." },
+  "settings": { "submitButtonText": "Submit", ... },
+  "sections": [
+    {
+      "id": "section_unique",
+      "title": "Section Title",
+      "fields": [
+        { "id": "field_unique", "key": "field_key", "type": "text", "label": "Label" }
+      ]
+    }
+  ]
+}
+```
+
+### Validation & Repair
+
+**Validation Pipeline**
+1. Parse JSON (handle markdown-wrapped, extract from content)
+2. Validate against FormSchemaContract
+3. If invalid, attempt repair
+4. Re-validate after repair
+5. Only persist if valid
+
+**Repair Capabilities**
+- Fix schema version
+- Add missing metadata/settings
+- Generate missing IDs and keys
+- Fix duplicate IDs/keys
+- Map unsupported field types (dropdown→select, boolean→checkbox)
+- Add default options for select/radio fields
+- Fix min/max constraint inversions
+- Remove unsupported properties
+- Cap file sizes to reasonable limits
+
+**Field Type Mapping**
+| AI Output | Mapped To |
+|-----------|-----------|
+| string, input, textfield | text |
+| dropdown, choice | select |
+| boolean, toggle | checkbox |
+| checkboxes | checkbox_group |
+| attachment, document | file |
+
+### Retry/Repair Behavior
+
+**Retryable Errors**
+- Timeout (3 retries, exponential backoff)
+- Rate limit (3 retries)
+- Provider error (3 retries)
+
+**Non-Retryable Errors**
+- Authentication failure
+- Invalid JSON after parse attempts
+- Schema validation failure after repair
+
+**Bounded Retry**
+- Max 3 attempts per job
+- Backoff: 10s, 20s, 30s
+- Job timeout: 120s
+
+### Security
+
+**Never Log**
+- API keys or secrets
+- Bearer tokens
+- Unnecessary PII from submissions
+
+**Sanitization**
+- Error messages: redact API keys, tokens
+- Prompts: replace emails, phones, SSNs with placeholders
+- Job records: store sanitized prompt only
+
+**Tenant Isolation**
+- Jobs scoped to tenant_id
+- Cannot access other tenant's jobs
+- Form modifications require authorization
+
+### Observability
+
+**AIJob Record**
+```
+- job_uuid: Unique identifier
+- tenant_id, user_id, form_id
+- request_type: generate | modify
+- status: queued | running | succeeded | failed
+- provider, model
+- prompt (sanitized)
+- result_schema (on success)
+- validation_errors, repair_log
+- input_tokens, output_tokens, latency_ms
+- error_type, error_message (sanitized)
+- timestamps
+```
+
+**Metrics Tracked**
+- Token usage (input/output)
+- Latency (ms)
+- Retry count
+- Validation outcome
+- Repair actions taken
+
+### Diff Workflow
+
+**Never Directly Overwrite**
+```
+Current Schema
+    ↓
+AI Modification
+    ↓
+Validate & Repair
+    ↓
+Generate Diff (added/removed/modified fields)
+    ↓
+User Reviews Diff
+    ↓
+Accept → Create NEW Version
+Reject → Discard
+```
+
+### API Endpoints
+
+```
+POST /api/ai/generate           # Queue form generation
+POST /api/ai/forms/{id}/modify  # Queue form modification
+GET  /api/ai/jobs/{uuid}        # Get job status
+GET  /api/ai/jobs               # List user's jobs
+POST /api/ai/forms/{id}/preview-diff  # Preview changes
+POST /api/ai/forms/{id}/accept  # Accept AI changes
+POST /api/ai/create-form        # Create form from generation
+GET  /api/ai/provider           # Get provider info
+```
+
+### Limitations
+
+1. **No streaming**: Responses are complete, not streamed
+2. **Single provider**: One active provider at a time
+3. **No conversation**: Each request is independent
+4. **English-centric prompts**: System prompts in English
+5. **No image understanding**: Text prompts only
+6. **Schema v1.0 only**: No multi-version support
+7. **No cost estimation**: Token usage tracked but not priced
+
+### Two Additional Weeks Would Add
+
+1. **Streaming responses**: Show generation progress
+2. **Multi-turn conversation**: Refine forms iteratively
+3. **Provider fallback**: Auto-switch on failure
+4. **Cost tracking**: Estimate and track API costs
+5. **Prompt templates**: Reusable generation templates
+6. **Field suggestions**: AI suggests fields based on context
+7. **Smart defaults**: Learn from user's previous forms
+8. **Batch generation**: Generate multiple form variants
+9. **A/B testing**: Compare AI-generated vs manual forms
+10. **Fine-tuning**: Custom model for form generation
+
+---
+
+## Test Coverage Summary
+
+### Phase 6 Tests (40 tests)
+- VersioningTest: 18 tests
+- ConditionalLogicTest: 22 tests
+
+### Phase 7 Tests (29 tests)
+- Generation workflow
+- Prompt validation
+- Schema validation and repair
+- Field type mapping
+- Error handling (timeout, rate limit, auth)
+- AI editing (modify, translate, add fields)
+- Version creation on accept
+- Job status tracking
+- Token/latency metrics
+- Security (sanitization, tenant isolation)
+- Diff preview
+
+### Total: 211 tests, 514 assertions
