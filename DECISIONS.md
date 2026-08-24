@@ -435,3 +435,231 @@ GET  /api/ai/provider           # Get provider info
 - Diff preview
 
 ### Total: 211 tests, 514 assertions
+
+
+---
+
+## Phase 8: Word and Excel Form Import
+
+### User Problem
+Form creators often have existing forms in Word documents or Excel spreadsheets that they want to convert to digital forms. Manual recreation is time-consuming and error-prone.
+
+### Import Strategy
+
+**Deterministic First, AI Second**
+- All parsing is deterministic by default
+- AI classification only used for genuinely ambiguous cases
+- Predictable, testable behavior
+
+### DOCX Import
+
+**Supported Patterns**
+| Document Element | Detected As |
+|-----------------|-------------|
+| Headings (H1-H6) | Section breaks |
+| Text ending with `:` or `?` | Questions/fields |
+| Bullet/numbered lists | Choice options (radio/select) |
+| Checkbox lists (☐, [], etc.) | Checkbox group options |
+| Underscores `___` | Text input placeholders |
+| Tables with Q&A structure | Structured question groups |
+
+**Field Type Inference**
+| Text Pattern | Inferred Type |
+|--------------|---------------|
+| email, e-mail | email |
+| phone, telephone, mobile | phone |
+| date, birthday, dob | date |
+| number, amount, age | number |
+| url, website, link | url |
+| describe, explain, message | textarea |
+| yes/no, agree, consent | checkbox |
+| rate, rating, score | rating |
+| Default | text |
+
+**Security**
+- Never execute macros or embedded content
+- Validate MIME type and extension
+- Max file size: 10MB
+- Sanitize all extracted text
+
+### XLSX Import
+
+**Two Formats Supported**
+
+1. **Header Row Format** (simple)
+```
+Name | Email | Phone | Age
+John | john@example.com | 555-1234 | 30
+```
+- Column headers become field labels
+- Sample data used to infer types
+
+2. **Mapping Format** (explicit)
+```
+section | field_type | key | label | placeholder | help_text | required | options | validation
+Personal | text | name | Full Name | Enter name | | yes | | minLength:2
+```
+- Full control over field configuration
+- Options as `value:label,value:label`
+- Validation as `min:18,max:120`
+
+**Type Inference from Samples**
+- Email: Valid email format
+- Phone: 7+ digits with optional formatting
+- Date: Common date patterns (YYYY-MM-DD, MM/DD/YYYY)
+- Number: Numeric values
+- URL: Valid URL format
+- Default: text (for ambiguous values)
+
+### Import Workflow
+
+```
+Upload File
+    ↓
+Validate (extension, MIME, size, tenant)
+    ↓
+Queue if large (>1MB) or process sync
+    ↓
+Deterministic Parse
+    ↓
+[Optional] AI Classification (for ambiguous)
+    ↓
+Schema Validation
+    ↓
+Preview (show parsed elements)
+    ↓
+User Corrections (modify labels, types, options)
+    ↓
+Confirm
+    ↓
+Create Form + Version (atomic)
+```
+
+**Atomic Commit**
+- Import failure NEVER creates partial form
+- All-or-nothing transaction
+- File cleaned up on success or failure
+
+### Preview Display
+
+Each parsed element shows:
+- Source text (original document content)
+- Detected section
+- Detected field type
+- Generated label and key
+- Options (for choice fields)
+- Validations
+- Warnings (ambiguous parsing)
+- Parseable flag (false for unparseable blocks)
+
+### Correction API
+
+Users can correct before commit:
+```json
+{
+  "corrections": [
+    { "index": 0, "label": "Full Name", "key": "full_name" },
+    { "index": 1, "detected_field_type": "email" }
+  ]
+}
+```
+
+### Queue Strategy
+
+**Sync Processing** (< 1MB)
+- Immediate parsing
+- Response includes parsed elements
+
+**Async Processing** (≥ 1MB)
+- Job queued
+- Status polling via API
+- 3 retries, 120s timeout
+
+### ImportJob Model
+
+```
+- job_uuid: Unique identifier
+- tenant_id, user_id, form_id
+- import_type: docx | xlsx
+- status: queued | running | parsed | succeeded | failed
+- original_filename, file_path, file_size
+- parsed_elements: JSON array of ParsedElement
+- corrected_elements: User-modified elements
+- result_schema: Final form schema
+- validation_errors, warnings
+- error_message
+- use_ai_classification: boolean
+- timestamps
+```
+
+### API Endpoints
+
+```
+POST   /api/import/upload           # Upload and start import
+GET    /api/import                  # List import jobs
+GET    /api/import/{uuid}           # Get job status
+GET    /api/import/{uuid}/preview   # Get parsed elements
+POST   /api/import/{uuid}/correct   # Apply corrections
+POST   /api/import/{uuid}/commit    # Create form from import
+DELETE /api/import/{uuid}           # Cancel import
+```
+
+### Limitations
+
+1. **No macro execution**: VBA/macros ignored for security
+2. **No embedded objects**: Images, charts not processed
+3. **No complex tables**: Merged cells may not parse correctly
+4. **No form controls**: Word form fields not detected
+5. **Single sheet**: Only active sheet processed for Excel
+6. **No formulas**: Excel formulas evaluated as values
+7. **English patterns**: Type inference optimized for English
+
+### Two Additional Weeks Would Add
+
+1. **AI-assisted classification**: Use AI for ambiguous elements
+2. **Multi-sheet support**: Import from multiple Excel sheets
+3. **Template detection**: Recognize common form templates
+4. **Batch import**: Import multiple files at once
+5. **Import history**: Track and re-import from history
+6. **Field mapping UI**: Visual drag-drop field mapping
+7. **Preview rendering**: Show form preview before commit
+8. **Import from URL**: Fetch documents from URLs
+9. **PDF import**: Parse PDF forms
+10. **Google Docs/Sheets**: Direct integration
+
+---
+
+## Test Coverage Summary
+
+### Phase 8 Tests (24 tests)
+
+**DocxImportTest (8 tests)**
+- Basic document parsing
+- Question detection
+- Email/phone type inference
+- List parsing (choice/checkbox)
+- Table parsing
+- Invalid file rejection
+- Title extraction
+
+**XlsxImportTest (8 tests)**
+- Header row format parsing
+- Mapping format parsing
+- Type inference from samples
+- Ambiguous value handling
+- Invalid file rejection
+- Options parsing
+- Validation rules parsing
+- Title inference from filename
+
+**ImportWorkflowTest (8 tests)**
+- Schema builder creates valid schema
+- Heading-based section grouping
+- Options preservation
+- Failed import no partial form
+- Job status transitions
+- Corrections workflow
+- Unique key generation
+- Default options for select fields
+
+### Total: 235 tests, 574 assertions
