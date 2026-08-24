@@ -197,33 +197,67 @@ return [
     */
 
     'defaults' => [
-        'supervisor-1' => [
+        'supervisor-default' => [
             'connection' => 'redis',
             'queue' => ['default'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
-            'maxProcesses' => 1,
+            'maxProcesses' => 3,
             'maxTime' => 0,
             'maxJobs' => 0,
             'memory' => 128,
-            'tries' => 1,
+            'tries' => 3,
             'timeout' => 60,
+            'nice' => 0,
+        ],
+        'supervisor-ai' => [
+            'connection' => 'redis',
+            'queue' => ['ai'],
+            'balance' => 'simple',
+            'maxProcesses' => 2,
+            'memory' => 256,
+            'tries' => 3,
+            'timeout' => 180,
+            'backoff' => [10, 30, 60],
+            'nice' => 0,
+        ],
+        'supervisor-imports' => [
+            'connection' => 'redis',
+            'queue' => ['imports'],
+            'balance' => 'simple',
+            'maxProcesses' => 2,
+            'memory' => 256,
+            'tries' => 3,
+            'timeout' => 300,
+            'backoff' => [10, 30, 60],
             'nice' => 0,
         ],
     ],
 
     'environments' => [
         'production' => [
-            'supervisor-1' => [
+            'supervisor-default' => [
                 'maxProcesses' => 10,
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-ai' => [
+                'maxProcesses' => 5,
+            ],
+            'supervisor-imports' => [
+                'maxProcesses' => 3,
+            ],
         ],
 
         'local' => [
-            'supervisor-1' => [
+            'supervisor-default' => [
                 'maxProcesses' => 3,
+            ],
+            'supervisor-ai' => [
+                'maxProcesses' => 2,
+            ],
+            'supervisor-imports' => [
+                'maxProcesses' => 2,
             ],
         ],
     ],

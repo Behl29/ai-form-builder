@@ -16,15 +16,31 @@ class ProcessDocumentImport implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
-    public int $backoff = 10;
-    public int $timeout = 120;
+    public array $backoff = [10, 30, 60];
+    public int $timeout = 300;
+    public int $maxExceptions = 3;
 
     public function __construct(
         public ImportJob $importJob
-    ) {}
+    ) {
+        $this->onQueue('imports');
+    }
 
     public function handle(ImportService $importService): void
     {
+        // Idempotency check - skip if already processed
+        $this->importJob->refresh();
+        if ($this->importJob->isComplete() || $this->importJob->isParsed()) {
+            Log::info('Import job already processed, skipping', ['job_uuid' => $this->importJob->job_uuid]);
+            return;
+        }
+
+        // Prevent duplicate processing
+        if ($this->importJob->isRunning()) {
+            Log::info('Import job already running, skipping', ['job_uuid' => $this->importJob->job_uuid]);
+            return;
+        }
+
         try {
             $importService->processImport($this->importJob);
         } catch (\Exception $e) {

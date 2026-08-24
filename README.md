@@ -239,6 +239,83 @@ php artisan horizon
 
 Access Horizon dashboard at `/horizon` (local environment only).
 
+### Queue Configuration
+
+The application uses three dedicated queues:
+
+| Queue | Purpose | Timeout | Retries |
+|-------|---------|---------|--------|
+| default | General tasks | 60s | 3 |
+| ai | AI form generation/modification | 180s | 3 |
+| imports | Document import processing | 300s | 3 |
+
+All queues use exponential backoff (10s, 30s, 60s) for retries.
+
+## Database Indexes
+
+The following indexes are created for query optimization:
+
+| Table | Index | Purpose |
+|-------|-------|--------|
+| forms | tenant_id, updated_at | Form listing with ordering |
+| forms | slug, status | Public form lookup |
+| form_versions | form_id, version_number | Version history queries |
+| form_versions | form_id, is_published | Finding published versions |
+| form_submissions | form_id, ip_address, submitted_at | Duplicate submission detection |
+| form_submissions | form_id, form_version_id | Version-specific exports |
+| submission_files | form_submission_id, field_key | File lookups by submission |
+| ai_jobs | tenant_id, user_id, created_at | User job listing |
+| ai_jobs | job_uuid, tenant_id | Job status lookup |
+| import_jobs | tenant_id, created_at | Tenant job listing |
+| import_jobs | job_uuid, tenant_id | Job status lookup |
+
+## Rate Limits
+
+API rate limits are enforced per action:
+
+| Action | Limit | Window |
+|--------|-------|--------|
+| Public form submission | 10 | 1 minute |
+| Authentication (login/register) | 5 | 1 minute |
+| AI generation | 5 | 1 minute |
+| AI modification | 10 | 1 minute |
+| Document import | 5 | 5 minutes |
+| CSV export | 10 | 1 minute |
+
+Rate limit headers are included in responses:
+- `X-RateLimit-Limit`: Maximum requests allowed
+- `X-RateLimit-Remaining`: Requests remaining
+- `Retry-After`: Seconds until limit resets (when exceeded)
+
+## Security
+
+### Headers
+
+All API responses include security headers:
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `X-XSS-Protection: 1; mode=block`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy: geolocation=(), microphone=(), camera=()`
+
+### File Upload Security
+
+- Blocked extensions: PHP, EXE, BAT, shell scripts, etc.
+- Double extension detection (e.g., file.php.jpg)
+- MIME type validation
+- Maximum file size: 10MB
+- Files stored in private storage with non-guessable paths
+
+### Input Validation
+
+- Schema size limit: 1MB
+- Maximum fields per form: 200
+- Maximum sections per form: 50
+- Maximum options per field: 500
+- AI prompt limit: 2000 characters
+- Regex pattern safety validation (ReDoS prevention)
+- CSV formula injection prevention
+
 ## Health Check
 
 Verify the application is running:
