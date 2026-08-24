@@ -26,6 +26,7 @@ RUN mkdir -p storage/framework/{sessions,views,cache} \
     && mkdir -p storage/logs \
     && mkdir -p database \
     && touch database/database.sqlite \
+    && cp .env.example .env \
     && chmod -R 775 storage bootstrap/cache database
 
 EXPOSE 8080
