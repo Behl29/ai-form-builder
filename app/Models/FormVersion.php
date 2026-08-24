@@ -6,6 +6,7 @@ use Database\Factories\FormVersionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FormVersion extends Model
 {
@@ -26,12 +27,15 @@ class FormVersion extends Model
         'schema_version',
         'schema',
         'change_type',
+        'change_summary',
+        'restored_from_version_id',
         'is_published',
         'published_at',
     ];
 
     protected $casts = [
         'schema' => 'array',
+        'change_summary' => 'array',
         'is_published' => 'boolean',
         'published_at' => 'datetime',
     ];
@@ -44,6 +48,16 @@ class FormVersion extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function restoredFrom(): BelongsTo
+    {
+        return $this->belongsTo(FormVersion::class, 'restored_from_version_id');
+    }
+
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(FormSubmission::class);
     }
 
     public function isPublished(): bool
