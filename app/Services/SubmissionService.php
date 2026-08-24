@@ -17,7 +17,8 @@ use Illuminate\Support\Str;
 class SubmissionService
 {
     public function __construct(
-        private SubmissionValidator $validator
+        private SubmissionValidator $validator,
+        private FileSecurityService $fileSecurity
     ) {}
 
     public function submit(Form $form, array $data, array $files, Request $request): FormSubmission
@@ -229,10 +230,17 @@ class SubmissionService
             }
 
             $fileList = is_array($uploadedFiles) ? $uploadedFiles : [$uploadedFiles];
+            $allowedTypes = $fileFields[$key]['accept'] ?? [];
 
             foreach ($fileList as $file) {
                 if (!($file instanceof UploadedFile) || !$file->isValid()) {
                     continue;
+                }
+
+                // Security validation
+                $errors = $this->fileSecurity->validateUpload($file, $allowedTypes);
+                if (!empty($errors)) {
+                    throw new \RuntimeException('File validation failed: ' . implode(', ', $errors));
                 }
 
                 $this->storeFile($submission, $key, $file);
@@ -253,23 +261,13 @@ class SubmissionService
         return SubmissionFile::create([
             'form_submission_id' => $submission->id,
             'field_key' => $fieldKey,
-            'original_name' => $this->sanitizeFilename($file->getClientOriginalName()),
+            'original_name' => $this->fileSecurity->sanitizeFilename($file->getClientOriginalName()),
             'stored_name' => $storedName,
             'path' => $path,
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
             'disk' => 'local',
         ]);
-    }
-
-    private function sanitizeFilename(string $filename): string
-    {
-        // Remove path traversal attempts
-        $filename = basename($filename);
-        // Remove null bytes
-        $filename = str_replace("\0", '', $filename);
-        // Limit length
-        return Str::limit($filename, 200, '');
     }
 
     private function hashIp(?string $ip): ?string

@@ -117,7 +117,7 @@ class SubmissionValidator
             $this->addError($field['key'], $customError ?? "{$label} must not exceed {$maxLength} characters.");
         }
 
-        if ($pattern !== null && !preg_match("/{$pattern}/", $value)) {
+        if ($pattern !== null && $this->isSafeRegex($pattern) && !preg_match("/{$pattern}/u", $value)) {
             $this->addError($field['key'], $customError ?? "{$label} format is invalid.");
         }
     }
@@ -159,7 +159,7 @@ class SubmissionValidator
     private function validatePhone(array $field, mixed $value, string $label, ?string $customError): void
     {
         $pattern = $field['pattern'] ?? '^\+?[0-9\s\-\(\)]+$';
-        if (!preg_match("/{$pattern}/", $value)) {
+        if ($this->isSafeRegex($pattern) && !preg_match("/{$pattern}/u", $value)) {
             $this->addError($field['key'], $customError ?? "{$label} must be a valid phone number.");
         }
     }
@@ -350,5 +350,34 @@ class SubmissionValidator
             $this->errors[$key] = [];
         }
         $this->errors[$key][] = $message;
+    }
+
+    /**
+     * Check if regex pattern is safe to execute (prevent ReDoS)
+     */
+    private function isSafeRegex(string $pattern): bool
+    {
+        // Limit pattern length
+        if (strlen($pattern) > 500) {
+            return false;
+        }
+
+        // Disallow dangerous patterns that could cause catastrophic backtracking
+        // Check for nested quantifiers like (a+)+ or (a*)*
+        if (preg_match('/\([^)]*[+*]\)[+*]/', $pattern)) {
+            return false;
+        }
+
+        // Check for large quantifiers
+        if (preg_match('/\{\d{3,},/', $pattern)) {
+            return false;
+        }
+
+        // Test compile the regex with timeout
+        set_error_handler(fn() => true);
+        $result = @preg_match("/{$pattern}/u", '') !== false;
+        restore_error_handler();
+
+        return $result;
     }
 }
