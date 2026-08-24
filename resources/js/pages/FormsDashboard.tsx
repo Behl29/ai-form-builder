@@ -280,6 +280,10 @@ export function FormsDashboard({ onEditForm, onViewSubmissions, onLogout }: Form
                 open={createModalOpen}
                 onClose={() => setCreateModalOpen(false)}
                 onSubmit={handleCreate}
+                onFormCreated={() => {
+                    setCreateModalOpen(false);
+                    refetch();
+                }}
                 loading={createForm.isPending}
             />
         </div>
