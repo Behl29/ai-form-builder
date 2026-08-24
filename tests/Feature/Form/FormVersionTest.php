@@ -175,9 +175,9 @@ class FormVersionTest extends TestCase
 
         $form->update(['current_version_id' => $version2->id]);
 
-        // Restore version 1
+        // Restore version 1 (using rollback endpoint)
         $response = $this->actingAs($this->user)
-            ->postJson("/api/forms/{$form->id}/versions/{$version1->id}/restore");
+            ->postJson("/api/forms/{$form->id}/versions/{$version1->id}/rollback");
 
         $response->assertOk();
 
