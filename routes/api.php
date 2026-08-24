@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FormController;
 use App\Http\Controllers\Api\PublicFormController;
 use App\Http\Controllers\Api\SubmissionController;
+use App\Http\Controllers\Api\VersionController;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\SetTenantContext;
 use Illuminate\Support\Facades\Route;
@@ -46,9 +47,11 @@ Route::middleware(['auth:sanctum', SetTenantContext::class])->group(function () 
         Route::post('/forms/{form}/duplicate', [FormController::class, 'duplicate'])->name('forms.duplicate');
 
         // Form versions
-        Route::get('/forms/{form}/versions', [FormController::class, 'versions'])->name('forms.versions.index');
-        Route::get('/forms/{form}/versions/{version}', [FormController::class, 'showVersion'])->name('forms.versions.show');
-        Route::post('/forms/{form}/versions/{version}/restore', [FormController::class, 'restoreVersion'])->name('forms.versions.restore');
+        Route::get('/forms/{form}/versions', [VersionController::class, 'index'])->name('forms.versions.index');
+        Route::get('/forms/{form}/versions/{version}', [VersionController::class, 'show'])->name('forms.versions.show');
+        Route::post('/forms/{form}/versions/compare', [VersionController::class, 'compare'])->name('forms.versions.compare');
+        Route::post('/forms/{form}/versions/{version}/rollback', [VersionController::class, 'rollback'])->name('forms.versions.rollback');
+        Route::post('/forms/{form}/versions/{version}/publish', [VersionController::class, 'publish'])->name('forms.versions.publish');
 
         // Submissions
         Route::get('/forms/{form}/submissions', [SubmissionController::class, 'index'])->name('forms.submissions.index');
