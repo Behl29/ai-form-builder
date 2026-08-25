@@ -31,14 +31,8 @@ RUN mkdir -p storage/framework/{sessions,views,cache} \
 
 EXPOSE 8080
 
-# Create startup script that injects env vars before Laravel boots
-RUN echo '#!/bin/sh\n\
-echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> /var/www/html/.env\n\
-echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> /var/www/html/.env\n\
-php artisan key:generate --force\n\
-php artisan migrate --force\n\
-php artisan db:seed --force\n\
-exec php artisan serve --host=0.0.0.0 --port=8080\n\
-' > /var/www/html/start.sh && chmod +x /var/www/html/start.sh
+# Create startup script
+COPY start.sh /var/www/html/start.sh
+RUN chmod +x /var/www/html/start.sh
 
 CMD ["/var/www/html/start.sh"]
