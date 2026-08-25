@@ -157,7 +157,7 @@ export function CreateFormModal({ open, onClose, onSubmit, onFormCreated, loadin
                             : 'text-gray-600 hover:text-gray-900'
                     }`}
                 >
-                    ✨ AI Generate
+                    AI Generate
                 </button>
             </div>
 
@@ -218,7 +218,7 @@ export function CreateFormModal({ open, onClose, onSubmit, onFormCreated, loadin
                         </div>
 
                         <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-700">
-                            <p className="font-medium mb-1">💡 Tips:</p>
+                            <p className="font-medium mb-1">Tips:</p>
                             <ul className="list-disc list-inside space-y-1 text-blue-600">
                                 <li>Be specific about the fields you need</li>
                                 <li>Mention field types (text, email, dropdown, etc.)</li>
@@ -243,7 +243,7 @@ export function CreateFormModal({ open, onClose, onSubmit, onFormCreated, loadin
                         Cancel
                     </Button>
                     <Button type="submit" loading={loading || aiLoading}>
-                        {mode === 'manual' ? 'Create Form' : '✨ Generate with AI'}
+                        {mode === 'manual' ? 'Create Form' : 'Generate with AI'}
                     </Button>
                 </div>
             </form>
