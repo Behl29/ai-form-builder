@@ -65,15 +65,20 @@ Route::middleware(['auth:sanctum', SetTenantContext::class])->group(function () 
         Route::get('/forms/{form}/submissions/{submission}/files/{file}', [SubmissionController::class, 'downloadFile'])->name('forms.submissions.files.download');
 
         // AI Form Generation
-        Route::prefix('ai')->middleware('rate.limit:ai_generate')->group(function () {
+        Route::prefix('ai')->group(function () {
             Route::get('/provider', [AIController::class, 'providerInfo'])->name('ai.provider');
             Route::get('/jobs', [AIController::class, 'listJobs'])->name('ai.jobs.index');
             Route::get('/jobs/{jobUuid}', [AIController::class, 'status'])->name('ai.jobs.status');
-            Route::post('/generate', [AIController::class, 'generate'])->name('ai.generate');
+            
+            // Rate limited AI actions
+            Route::middleware('rate.limit:ai_generate')->group(function () {
+                Route::post('/generate', [AIController::class, 'generate'])->name('ai.generate');
+                Route::post('/create-form', [AIController::class, 'createForm'])->name('ai.create-form');
+            });
+            
             Route::post('/forms/{form}/modify', [AIController::class, 'modify'])->middleware('rate.limit:ai_modify')->name('ai.modify');
             Route::post('/forms/{form}/preview-diff', [AIController::class, 'previewDiff'])->name('ai.preview-diff');
             Route::post('/forms/{form}/accept', [AIController::class, 'accept'])->name('ai.accept');
-            Route::post('/create-form', [AIController::class, 'createForm'])->name('ai.create-form');
         });
 
         // Document Import

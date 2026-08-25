@@ -26,7 +26,7 @@ class GeminiProvider implements FormAIProvider
             ?? '';
         $this->model = config('services.gemini.model') ?? 'gemini-1.5-flash';
         $this->baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
-        $this->timeout = (int) config('services.gemini.timeout', 60);
+        $this->timeout = (int) config('services.gemini.timeout', 25);
     }
 
     public function generateForm(string $prompt, array $options = []): AIResponse

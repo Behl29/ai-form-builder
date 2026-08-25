@@ -20,7 +20,7 @@ class ProcessAIFormGeneration implements ShouldQueue
 
     public int $tries = 3;
     public array $backoff = [10, 30, 60];
-    public int $timeout = 180;
+    public int $timeout = 30;
     public int $maxExceptions = 3;
 
     public function __construct(
