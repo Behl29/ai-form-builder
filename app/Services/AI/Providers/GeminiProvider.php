@@ -20,10 +20,11 @@ class GeminiProvider implements FormAIProvider
 
     public function __construct()
     {
-        $this->apiKey = config('services.gemini.api_key') 
-            ?? getenv('GEMINI_API_KEY') 
-            ?? $_ENV['GEMINI_API_KEY'] 
-            ?? '';
+        // Runtime env takes priority (for Render deployment)
+        $this->apiKey = getenv('GEMINI_API_KEY') 
+            ?: ($_ENV['GEMINI_API_KEY'] ?? null)
+            ?: config('services.gemini.api_key')
+            ?: '';
         $this->model = config('services.gemini.model') ?? 'gemini-1.5-flash';
         $this->baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
         $this->timeout = (int) config('services.gemini.timeout', 25);
