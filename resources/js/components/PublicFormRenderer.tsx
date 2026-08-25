@@ -461,18 +461,28 @@ function FieldInput({ field, value: rawValue, files, error, onChange, onFileChan
             case 'file':
                 return (
                     <div>
-                        <input
-                            type="file"
-                            onChange={(e) => onFileChange(field.key, e.target.files)}
-                            accept={(field as any).accept?.join(',')}
-                            multiple={(field as any).multiple}
-                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                            required={isRequired && (!files || files.length === 0)}
-                        />
+                        <label className="block w-full cursor-pointer">
+                            <div className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600">Tap to select file</p>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        {(field as any).accept?.join(', ') || 'All files accepted'}
+                                    </p>
+                                </div>
+                            </div>
+                            <input
+                                type="file"
+                                onChange={(e) => onFileChange(field.key, e.target.files)}
+                                accept={(field as any).accept?.join(',')}
+                                multiple={(field as any).multiple}
+                                className="hidden"
+                                required={isRequired && (!files || files.length === 0)}
+                            />
+                        </label>
                         {files && files.length > 0 && (
-                            <div className="mt-2 text-sm text-gray-600">
+                            <div className="mt-2 text-sm text-green-600">
                                 {files.map((f, i) => (
-                                    <div key={i}>{f.name}</div>
+                                    <div key={i}>Selected: {f.name}</div>
                                 ))}
                             </div>
                         )}

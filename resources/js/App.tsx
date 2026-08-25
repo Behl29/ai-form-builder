@@ -32,7 +32,7 @@ function AppContent() {
         const parseRoute = () => {
             const path = window.location.pathname;
 
-            const publicMatch = path.match(/^\/forms\/([a-z0-9-]+)$/);
+            const publicMatch = path.match(/^\/forms\/([a-zA-Z0-9-]+)$/);
             if (publicMatch && !path.includes('/edit') && !path.includes('/submissions')) {
                 setView({ type: 'public-form', slug: publicMatch[1] });
                 return;
