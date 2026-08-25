@@ -94,10 +94,39 @@ export function PublicFormRenderer({ schema, slug, successMessage }: PublicFormR
         setCurrentStep((prev) => Math.max(prev - 1, 0));
     }, []);
 
+    const validateAllSections = useCallback((): boolean => {
+        const allErrors: FormErrors = {};
+        
+        for (const section of sections) {
+            for (const field of section.fields) {
+                if (isPresentationalField(field.type)) continue;
+                if (!isFieldVisible(field, formData)) continue;
+
+                const value = formData[field.key];
+                const isRequired = field.required || shouldBeRequired(field, formData);
+
+                if (isRequired) {
+                    if (field.type === 'file') {
+                        if (!files[field.key] || files[field.key].length === 0) {
+                            allErrors[field.key] = [field.customError || `${field.label || field.key} is required`];
+                        }
+                    } else if (value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) {
+                        allErrors[field.key] = [field.customError || `${field.label || field.key} is required`];
+                    }
+                }
+            }
+        }
+
+        setErrors(allErrors);
+        return Object.keys(allErrors).length === 0;
+    }, [sections, formData, files]);
+
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!validateStep(currentSection)) {
+        // Validate all fields before submit
+        if (!validateAllSections()) {
+            setSubmitError('Please fill all required fields.');
             return;
         }
 
