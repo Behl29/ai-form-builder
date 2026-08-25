@@ -93,7 +93,6 @@ class GeminiProvider implements FormAIProvider
                 'generationConfig' => [
                     'temperature' => 0.7,
                     'maxOutputTokens' => 4096,
-                    'responseMimeType' => 'application/json',
                 ],
             ]);
 
@@ -106,6 +105,10 @@ class GeminiProvider implements FormAIProvider
         }
 
         if (!$response->successful()) {
+            Log::error('Gemini API Error', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
             throw new \Exception("API error: {$response->status()}", $response->status());
         }
 
