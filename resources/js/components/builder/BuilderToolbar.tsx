@@ -7,6 +7,7 @@ import {
     Code,
     Eye,
     Loader2,
+    Menu,
     Monitor,
     Save,
     Smartphone,
@@ -25,6 +26,7 @@ interface BuilderToolbarProps {
     onPublish: () => void;
     onPreview: () => void;
     onToggleJson?: () => void;
+    onTogglePalette?: () => void;
     isSaving?: boolean;
     isPublishing?: boolean;
 }
@@ -39,6 +41,7 @@ export function BuilderToolbar({
     onPublish,
     onPreview,
     onToggleJson,
+    onTogglePalette,
     isSaving,
     isPublishing,
 }: BuilderToolbarProps) {
@@ -94,7 +97,20 @@ export function BuilderToolbar({
                 </div>
 
                 {/* Right: Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
+                    {/* Mobile: Add Field Button */}
+                    {onTogglePalette && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={onTogglePalette}
+                            className="lg:hidden"
+                            title="Add field"
+                        >
+                            <Menu className="w-4 h-4" />
+                        </Button>
+                    )}
+
                     {onToggleJson && (
                         <Button
                             variant="ghost"

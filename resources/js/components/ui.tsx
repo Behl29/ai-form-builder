@@ -108,9 +108,9 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="flex min-h-screen items-end sm:items-center justify-center p-0 sm:p-4">
                 <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-                <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div className="relative bg-white rounded-t-xl sm:rounded-xl shadow-xl w-full sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
                     {children}
                 </div>

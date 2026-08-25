@@ -13,7 +13,11 @@ import { Button, ConfirmDialog } from '../ui';
 import { useBuilder } from './BuilderContext';
 import { FieldRenderer } from './FieldRenderer';
 
-export function FormCanvas() {
+interface FormCanvasProps {
+    onFieldSelect?: () => void;
+}
+
+export function FormCanvas({ onFieldSelect }: FormCanvasProps) {
     const { state, addSection, selectSection, selectField } = useBuilder();
     const { schema, previewMode } = state;
 
@@ -24,10 +28,20 @@ export function FormCanvas() {
         }
     };
 
+    const handleFieldSelect = (fieldId: string) => {
+        selectField(fieldId);
+        onFieldSelect?.();
+    };
+
+    const handleSectionSelect = (sectionId: string) => {
+        selectSection(sectionId);
+        onFieldSelect?.();
+    };
+
     return (
         <div
             className={clsx(
-                'flex-1 bg-gray-100 overflow-auto p-6',
+                'flex-1 bg-gray-100 overflow-auto p-4 sm:p-6',
                 previewMode === 'mobile' && 'flex justify-center'
             )}
             onClick={handleCanvasClick}
@@ -39,12 +53,12 @@ export function FormCanvas() {
                 )}
             >
                 {/* Form Header */}
-                <div className="bg-white rounded-t-xl border border-gray-200 p-6">
-                    <h1 className="text-2xl font-bold text-gray-900">
+                <div className="bg-white rounded-t-xl border border-gray-200 p-4 sm:p-6">
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                         {schema.metadata.title || 'Untitled Form'}
                     </h1>
                     {schema.metadata.description && (
-                        <p className="text-gray-600 mt-2">{schema.metadata.description}</p>
+                        <p className="text-gray-600 mt-2 text-sm sm:text-base">{schema.metadata.description}</p>
                     )}
                 </div>
 
@@ -59,6 +73,8 @@ export function FormCanvas() {
                             section={section}
                             index={index}
                             isLast={index === schema.sections.length - 1}
+                            onFieldSelect={handleFieldSelect}
+                            onSectionSelect={handleSectionSelect}
                         />
                     ))}
                 </SortableContext>
@@ -90,9 +106,11 @@ interface SortableSectionProps {
     section: FormSection;
     index: number;
     isLast: boolean;
+    onFieldSelect?: (fieldId: string) => void;
+    onSectionSelect?: (sectionId: string) => void;
 }
 
-function SortableSection({ section, isLast }: SortableSectionProps) {
+function SortableSection({ section, isLast, onFieldSelect, onSectionSelect }: SortableSectionProps) {
     const { state, selectSection, updateSection, deleteSection } = useBuilder();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -145,10 +163,11 @@ function SortableSection({ section, isLast }: SortableSectionProps) {
                 onClick={(e) => {
                     e.stopPropagation();
                     selectSection(section.id);
+                    onSectionSelect?.(section.id);
                 }}
             >
                 {/* Section Header */}
-                <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <div className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 border-b border-gray-200">
                     <button
                         {...attributes}
                         {...listeners}
@@ -199,7 +218,7 @@ function SortableSection({ section, isLast }: SortableSectionProps) {
                 </div>
 
                 {/* Section Fields */}
-                <SectionDropZone section={section} />
+                <SectionDropZone section={section} onFieldSelect={onFieldSelect} />
             </div>
 
             <ConfirmDialog
@@ -220,9 +239,10 @@ function SortableSection({ section, isLast }: SortableSectionProps) {
 
 interface SectionDropZoneProps {
     section: FormSection;
+    onFieldSelect?: (fieldId: string) => void;
 }
 
-function SectionDropZone({ section }: SectionDropZoneProps) {
+function SectionDropZone({ section, onFieldSelect }: SectionDropZoneProps) {
     const { addField } = useBuilder();
     const { setNodeRef, isOver } = useDroppable({
         id: `section-${section.id}`,
@@ -244,7 +264,7 @@ function SectionDropZone({ section }: SectionDropZoneProps) {
                 >
                     <div className="space-y-3">
                         {section.fields.map((field) => (
-                            <SortableField key={field.id} field={field} sectionId={section.id} />
+                            <SortableField key={field.id} field={field} sectionId={section.id} onFieldSelect={onFieldSelect} />
                         ))}
                     </div>
                 </SortableContext>
@@ -276,9 +296,10 @@ function SectionDropZone({ section }: SectionDropZoneProps) {
 interface SortableFieldProps {
     field: FormField;
     sectionId: string;
+    onFieldSelect?: (fieldId: string) => void;
 }
 
-function SortableField({ field, sectionId }: SortableFieldProps) {
+function SortableField({ field, sectionId, onFieldSelect }: SortableFieldProps) {
     const { state, selectField, deleteField, duplicateField } = useBuilder();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -314,6 +335,7 @@ function SortableField({ field, sectionId }: SortableFieldProps) {
                 onClick={(e) => {
                     e.stopPropagation();
                     selectField(field.id);
+                    onFieldSelect?.(field.id);
                 }}
             >
                 {/* Field Actions */}

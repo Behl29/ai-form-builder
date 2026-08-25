@@ -178,7 +178,7 @@ export function FormsDashboard({ onEditForm, onViewSubmissions, onLogout }: Form
                     </div>
 
                     {/* Status tabs */}
-                    <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                    <div className="flex gap-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
                         {statusTabs.map((tab) => (
                             <button
                                 key={tab.value}
@@ -187,7 +187,7 @@ export function FormsDashboard({ onEditForm, onViewSubmissions, onLogout }: Form
                                     setPage(1);
                                 }}
                                 className={clsx(
-                                    'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                                    'px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
                                     statusFilter === tab.value
                                         ? 'bg-white text-gray-900 shadow-sm'
                                         : 'text-gray-600 hover:text-gray-900'

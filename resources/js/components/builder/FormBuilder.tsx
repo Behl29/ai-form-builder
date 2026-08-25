@@ -11,6 +11,8 @@ import {
     useSensors,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { clsx } from 'clsx';
+import { Menu, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import type { FieldType, Form, FormField, FormSchema } from '../../types/form-schema';
 import { useAutosave } from '../../hooks/useAutosave';
@@ -57,6 +59,8 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
     const [activeType, setActiveType] = useState<'field' | 'palette' | 'section' | null>(null);
     const [activeData, setActiveData] = useState<FormField | FieldType | null>(null);
     const [showJsonEditor, setShowJsonEditor] = useState(false);
+    const [showMobilePalette, setShowMobilePalette] = useState(false);
+    const [showMobileConfig, setShowMobileConfig] = useState(false);
 
     const publishForm = usePublishForm();
 
@@ -245,6 +249,7 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
                 onToggleJson={() => setShowJsonEditor(true)}
                 isSaving={isSaving}
                 isPublishing={publishForm.isPending}
+                onTogglePalette={() => setShowMobilePalette(true)}
             />
 
             <DndContext
@@ -255,9 +260,49 @@ function FormBuilderInner({ form, onBack, onSaved }: FormBuilderInnerProps) {
                 onDragEnd={handleDragEnd}
             >
                 <div className="flex-1 flex overflow-hidden">
-                    <FieldPalette />
-                    <FormCanvas />
-                    <ConfigPanel />
+                    {/* Desktop Palette */}
+                    <div className="hidden lg:block">
+                        <FieldPalette />
+                    </div>
+                    
+                    {/* Mobile Palette Overlay */}
+                    {showMobilePalette && (
+                        <div className="lg:hidden fixed inset-0 z-40">
+                            <div className="absolute inset-0 bg-black/50" onClick={() => setShowMobilePalette(false)} />
+                            <div className="absolute left-0 top-0 bottom-0 w-64 bg-white shadow-xl">
+                                <div className="flex items-center justify-between p-4 border-b">
+                                    <span className="font-semibold">Add Field</span>
+                                    <button onClick={() => setShowMobilePalette(false)} className="p-1">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <FieldPalette />
+                            </div>
+                        </div>
+                    )}
+                    
+                    <FormCanvas onFieldSelect={() => setShowMobileConfig(true)} />
+                    
+                    {/* Desktop Config Panel */}
+                    <div className="hidden lg:block">
+                        <ConfigPanel />
+                    </div>
+                    
+                    {/* Mobile Config Panel Overlay */}
+                    {showMobileConfig && (
+                        <div className="lg:hidden fixed inset-0 z-40">
+                            <div className="absolute inset-0 bg-black/50" onClick={() => setShowMobileConfig(false)} />
+                            <div className="absolute right-0 top-0 bottom-0 w-80 max-w-full bg-white shadow-xl">
+                                <div className="flex items-center justify-between p-4 border-b">
+                                    <span className="font-semibold">Properties</span>
+                                    <button onClick={() => setShowMobileConfig(false)} className="p-1">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <ConfigPanel />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <DragOverlay dropAnimation={null}>
