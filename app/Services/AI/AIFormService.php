@@ -23,7 +23,7 @@ class AIFormService
     ) {}
 
     /**
-     * Queue a form generation job
+     * Queue a form generation job (or run sync if sync queue)
      */
     public function queueGeneration(
         User $user,
@@ -42,9 +42,56 @@ class AIFormService
             'options' => $options,
         ]);
 
-        ProcessAIFormGeneration::dispatch($job);
+        // For sync queue, run directly instead of dispatching
+        if (config('queue.default') === 'sync') {
+            $this->processGenerationSync($job);
+        } else {
+            ProcessAIFormGeneration::dispatch($job);
+        }
 
         return $job;
+    }
+
+    /**
+     * Process generation synchronously
+     */
+    private function processGenerationSync(AIJob $job): void
+    {
+        $job->markRunning();
+
+        try {
+            $response = $this->provider->generateForm($job->prompt, $job->options ?? []);
+
+            $job->recordMetrics(
+                $response->inputTokens ?? 0,
+                $response->outputTokens ?? 0,
+                $response->latencyMs ?? 0
+            );
+
+            if (!$response->success) {
+                $job->markFailed($response->errorType, $response->error);
+                return;
+            }
+
+            // Validate schema
+            $errors = $this->validator->validateAndGetErrors($response->schema);
+
+            if (!empty($errors)) {
+                $repairResult = $this->repair->repair($response->schema);
+
+                if ($repairResult['success']) {
+                    $job->markSucceeded($repairResult['schema'], $repairResult['repairs']);
+                } else {
+                    $job->markFailed(AIResponse::ERROR_INVALID_SCHEMA, 'Schema validation failed', $repairResult['errors']);
+                }
+                return;
+            }
+
+            $job->markSucceeded($response->schema);
+        } catch (\Exception $e) {
+            \Log::error('AI sync generation failed', ['error' => $e->getMessage()]);
+            $job->markFailed(AIResponse::ERROR_PROVIDER_ERROR, $e->getMessage());
+        }
     }
 
     /**
