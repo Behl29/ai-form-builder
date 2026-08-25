@@ -22,12 +22,13 @@ Route::get('/health', function () {
 // Debug endpoint (temporary)
 Route::get('/debug-env', function () {
     return response()->json([
-        'gemini_key_exists' => !empty(env('GEMINI_API_KEY')),
-        'gemini_key_length' => strlen(env('GEMINI_API_KEY', '')),
-        'gemini_key_preview' => substr(env('GEMINI_API_KEY', ''), 0, 8) . '...',
-        'getenv_exists' => !empty(getenv('GEMINI_API_KEY')),
+        'env_func' => !empty(env('GEMINI_API_KEY')),
+        'getenv' => !empty(getenv('GEMINI_API_KEY')),
+        'server' => !empty($_SERVER['GEMINI_API_KEY'] ?? ''),
+        'env_array' => !empty($_ENV['GEMINI_API_KEY'] ?? ''),
         'ai_provider' => env('AI_PROVIDER'),
-        'env_file_check' => file_exists('/var/www/html/.env'),
+        'dotenv_file' => file_exists(base_path('.env')),
+        'key_in_file' => str_contains(file_get_contents(base_path('.env')), 'GEMINI_API_KEY'),
     ]);
 });
 

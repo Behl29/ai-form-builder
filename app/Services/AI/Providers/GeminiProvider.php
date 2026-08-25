@@ -29,9 +29,11 @@ class GeminiProvider implements FormAIProvider
      */
     private function getApiKey(): string
     {
-        return env('GEMINI_API_KEY', '') 
-            ?: getenv('GEMINI_API_KEY') 
-            ?: '';
+        // Try multiple sources - Render injects to .env which loads to $_SERVER
+        return $_SERVER['GEMINI_API_KEY'] 
+            ?? $_ENV['GEMINI_API_KEY'] 
+            ?? getenv('GEMINI_API_KEY') 
+            ?: env('GEMINI_API_KEY', '');
     }
 
     public function generateForm(string $prompt, array $options = []): AIResponse
