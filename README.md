@@ -2,13 +2,17 @@
 
 > A multi-tenant form builder with AI-powered form generation, drag-and-drop editing, conditional logic, and document import capabilities.
 
-## 🚀 Demo
+---
 
-**Live Demo:** Not deployed (local development only)
+## Live Demo
+
+**Live URL:** https://ai-form-builder-2-gips.onrender.com
 
 **Demo Credentials:**
 - Email: `demo@example.com`
 - Password: `password`
+
+---
 
 ## 📋 Project Status
 
@@ -73,7 +77,7 @@
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ### System Overview
 
@@ -155,7 +159,7 @@ erDiagram
 
 ---
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -183,7 +187,7 @@ erDiagram
 
 ---
 
-## 🚀 Local Setup
+##  Local Setup
 
 ### Prerequisites
 
@@ -224,7 +228,7 @@ php artisan horizon      # Terminal 3
 
 ---
 
-## 🐳 Docker Setup
+##  Docker Setup
 
 ```bash
 # Start all services
@@ -255,7 +259,7 @@ open http://localhost:8000
 
 ---
 
-## ⚙️ Environment Variables
+##  Environment Variables
 
 ### Required
 
@@ -291,7 +295,7 @@ BEDROCK_MODEL=anthropic.claude-3-sonnet-20240229-v1:0
 
 ---
 
-## 📊 Queue / Horizon
+##  Queue / Horizon
 
 ### Configuration
 
@@ -321,7 +325,7 @@ Access Horizon dashboard at `/horizon` (local only).
 
 ---
 
-## 🗄️ Database
+## Database
 
 ### Entity Relationship
 
@@ -347,7 +351,7 @@ tenants ─┬─< users
 
 ---
 
-## 📝 JSON Schema Contract
+##  JSON Schema Contract
 
 See [docs/SCHEMA.md](docs/SCHEMA.md) for complete specification.
 
@@ -392,7 +396,7 @@ See [docs/SCHEMA.md](docs/SCHEMA.md) for complete specification.
 
 ---
 
-## 🔌 API Endpoints
+##  API Endpoints
 
 ### Authentication
 
@@ -453,7 +457,7 @@ See [docs/SCHEMA.md](docs/SCHEMA.md) for complete specification.
 
 ---
 
-## 🔒 Security
+##Security
 
 ### Rate Limits
 
@@ -484,7 +488,7 @@ All responses include:
 
 ---
 
-## 🧪 Testing
+##  Testing
 
 ### Backend
 
@@ -523,7 +527,7 @@ npm run test
 
 ---
 
-## 🚢 Deployment
+##  Deployment
 
 ### Production Checklist
 
@@ -545,7 +549,7 @@ npm run test
 
 ---
 
-## ⚠️ Limitations
+##  Limitations
 
 1. **No real-time collaboration** - Single user editing only
 2. **No form templates** - Must create from scratch or import
@@ -556,13 +560,13 @@ npm run test
 
 ---
 
-## 📚 Documentation
+##  Documentation
 
 - [Schema Specification](docs/SCHEMA.md)
 - [Architecture Decisions](docs/DECISIONS.md)
 
 ---
 
-## 📄 License
+## License
 
 Proprietary - All rights reserved.

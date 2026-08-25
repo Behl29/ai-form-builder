@@ -1,0 +1,11 @@
+section,field_type,key,label,placeholder,help_text,required,options,validation
+Personal Info,text,full_name,Full Name,Enter your full name,Your legal name as it appears on documents,yes,,minLength:2|maxLength:100
+Personal Info,email,email,Email Address,you@example.com,We'll never share your email,yes,,
+Personal Info,phone,phone_number,Phone Number,+1 (555) 123-4567,Include country code,no,,
+Personal Info,date,date_of_birth,Date of Birth,,Must be 18 or older,yes,,
+Demographics,select,gender,Gender,Select your gender,,no,male:Male|female:Female|other:Other|prefer_not:Prefer not to say,
+Demographics,select,country,Country,Select your country,,yes,us:United States|uk:United Kingdom|ca:Canada|au:Australia|other:Other,
+Demographics,number,age,Age,Enter your age,,no,,min:18|max:120
+Preferences,checkbox_group,interests,Interests,,Select all that apply,no,tech:Technology|sports:Sports|music:Music|travel:Travel|food:Food,
+Preferences,radio,contact_method,Preferred Contact Method,,,yes,email:Email|phone:Phone|sms:SMS,
+Preferences,textarea,comments,Additional Comments,Any other information you'd like to share...,,no,,maxLength:500
