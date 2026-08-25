@@ -13,21 +13,25 @@ use Illuminate\Support\Facades\Log;
  */
 class GeminiProvider implements FormAIProvider
 {
-    private string $apiKey;
     private string $model;
     private string $baseUrl;
     private int $timeout;
 
     public function __construct()
     {
-        // Runtime env takes priority (for Render deployment)
-        $this->apiKey = getenv('GEMINI_API_KEY') 
-            ?: ($_ENV['GEMINI_API_KEY'] ?? null)
-            ?: config('services.gemini.api_key')
-            ?: '';
-        $this->model = config('services.gemini.model') ?? 'gemini-1.5-flash';
+        $this->model = env('GEMINI_MODEL', 'gemini-1.5-flash');
         $this->baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
-        $this->timeout = (int) config('services.gemini.timeout', 25);
+        $this->timeout = 25;
+    }
+
+    /**
+     * Get API key at runtime (not cached)
+     */
+    private function getApiKey(): string
+    {
+        return env('GEMINI_API_KEY', '') 
+            ?: getenv('GEMINI_API_KEY') 
+            ?: '';
     }
 
     public function generateForm(string $prompt, array $options = []): AIResponse
@@ -74,12 +78,13 @@ class GeminiProvider implements FormAIProvider
 
     public function isAvailable(): bool
     {
-        return !empty($this->apiKey);
+        return !empty($this->getApiKey());
     }
 
     private function makeRequest(string $systemPrompt, string $userPrompt): array
     {
-        $url = "{$this->baseUrl}/models/{$this->model}:generateContent?key={$this->apiKey}";
+        $apiKey = $this->getApiKey();
+        $url = "{$this->baseUrl}/models/{$this->model}:generateContent?key={$apiKey}";
 
         $response = Http::timeout($this->timeout)
             ->post($url, [
