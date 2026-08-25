@@ -19,6 +19,18 @@ Route::get('/health', function () {
     ]);
 });
 
+// Debug endpoint (temporary)
+Route::get('/debug-env', function () {
+    return response()->json([
+        'gemini_key_exists' => !empty(env('GEMINI_API_KEY')),
+        'gemini_key_length' => strlen(env('GEMINI_API_KEY', '')),
+        'gemini_key_preview' => substr(env('GEMINI_API_KEY', ''), 0, 8) . '...',
+        'getenv_exists' => !empty(getenv('GEMINI_API_KEY')),
+        'ai_provider' => env('AI_PROVIDER'),
+        'env_file_check' => file_exists('/var/www/html/.env'),
+    ]);
+});
+
 // Public form routes (no auth required)
 Route::prefix('public')->middleware('rate.limit:public_submit')->group(function () {
     Route::get('/forms/{slug}', [PublicFormController::class, 'show']);
