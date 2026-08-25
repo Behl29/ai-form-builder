@@ -19,9 +19,9 @@ class GeminiProvider implements FormAIProvider
 
     public function __construct()
     {
-        $this->model = env('GEMINI_MODEL', 'gemini-1.5-flash');
+        $this->model = 'gemini-1.5-flash-latest';
         $this->baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
-        $this->timeout = 25;
+        $this->timeout = 30;
     }
 
     /**
